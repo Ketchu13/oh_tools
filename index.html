@@ -274,6 +274,67 @@
             transform: rotate(45deg);
             pointer-events: auto;
         }
+        
+        /* Overlay full screen fond sombre transparent */
+        #update-overlay {
+            display: none;
+            /* caché par défaut */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(30, 30, 30, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ddd;
+        }
+
+        /* Box message centré */
+        #update-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #2f3136;
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        #update-box h2 {
+            margin-bottom: 12px;
+            font-size: 1.8em;
+            color: #7289da;
+            /* Discord blurple */
+        }
+
+        #update-box p {
+            margin-bottom: 25px;
+            font-size: 1.1em;
+            line-height: 1.4;
+            color: #b9bbbe;
+        }
+
+        #update-box button {
+            background-color: #7289da;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 28px;
+            color: white;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #update-box button:hover {
+            background-color: #5b6eae;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
@@ -323,6 +384,13 @@
         </p>
     </footer>
     <div id="tooltip"></div>
+    <div id="update-overlay">
+        <div id="update-box">
+            <h2>Hey! 🚀 Update detected!</h2>
+            <p>A new version of this page is available.<br />Please reload to get the latest and greatest.</p>
+            <button id="reload-btn">Reload Now</button>
+        </div>
+    </div>
     <script>
         let memeticsData = [];
 
@@ -331,18 +399,52 @@
             .then(res => res.json())
             .then(data => memeticsData = data.memetics)
             .catch(err => alert("Erreur de chargement du JSON principal : " + err));
-
-        function decodeAndDecompress(encoded) {
-            // Décodage base64 → binaire (Uint8Array)
-            const binaryString = atob(encoded);
-            const binary = new Uint8Array([...binaryString].map(c => c.charCodeAt(0)));
-
-            // Décompression zlib
-            const json = pako.inflate(binary, { to: 'string' });
-
-            // Parse JSON
-            return JSON.parse(json);
+            async function getLatestCommitSHA(owner, repo, branch = 'main') {
+            const url = `https://api.github.com/repos/${owner}/${repo}/commits/${branch}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
+                const data = await response.json();
+                return data.sha.substring(0, 7);
+            } catch (error) {
+                console.error('Failed to fetch latest commit SHA:', error);
+                return null;
+            }
         }
+
+        function showUpdateOverlay() {
+            document.getElementById('update-overlay').style.display = 'block';
+        }
+        function reloadPage() {
+            // Tenter de vider le cache (reload complet)
+            // location.reload(true) est déprécié, donc on force reload avec un timestamp unique dans l'URL
+            const url = new URL(window.location.href);
+            url.searchParams.set('_', Date.now());
+            window.location.href = url.toString();
+        }
+        function startCheckingUpdates(owner, repo, branch = 'main', intervalMs = 300000) {
+            let lastSHA = null;
+
+            async function check() {
+                const latestSHA = await getLatestCommitSHA(owner, repo, branch);
+                if (!latestSHA) return;
+
+                if (lastSHA && latestSHA !== lastSHA) {
+                    console.log('Update detected! New commit:', latestSHA);
+                    showUpdateOverlay();
+                } else if (!lastSHA) {
+                    console.log('Initial commit SHA:', latestSHA);
+                } else {
+                    console.log('No update. Current commit SHA:', latestSHA);
+                }
+
+                lastSHA = latestSHA;
+            }
+
+            check();
+            setInterval(check, intervalMs);
+        }
+
         function escapeHTML(str) {
             return String(str).replace(/[&<>"']/g, (m) => ({
                 '&': '&amp;',
@@ -369,11 +471,9 @@
             // Générer les tuiles
             const container = document.getElementById('tilesList');
             container.innerHTML = ''; // reset
-            const tooltip = document.getElementById('tooltip');
 
             const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
-            memetics_data = memeticsData
-                ;
+
             slots.forEach(slot => {
                 if (userData.memetics['s' + slot]) {
                     const item = memeticsData.find(m => m.id === parseInt(userData.memetics['s' + slot]));
@@ -391,12 +491,13 @@
                     console.warn(`No data for slot s${slot}`);
                 }
             });
-        }
+        }        
         function createTile(container, item, slot) {
 
             const tileNumber = slot;
-
+            const tooltip = document.getElementById('tooltip');
             const tile = document.createElement('div');
+
             tile.className = 'tile';
             tile.innerHTML = `
             <div class="tile-number">${tileNumber}</div>
@@ -420,8 +521,7 @@
 
             container.appendChild(tile);
         }
-    </script>
-    <script>
+
         function handleQRCodeUpload(input) {
             if (!input.files || input.files.length === 0) {
                 alert("Please select a file.");

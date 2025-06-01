@@ -268,6 +268,83 @@
                 0 0 10px #00FFFF,
                 0 0 20px #00FFFF;
         }
+
+        /* Overlay full screen fond sombre transparent */
+        #update-overlay {
+            display: none;
+            /* caché par défaut */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(30, 30, 30, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ddd;
+        }
+
+        /* Box message centré */
+        #update-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #2f3136;
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        #update-box h2 {
+            margin-bottom: 12px;
+            font-size: 1.8em;
+            color: #7289da;
+            /* Discord blurple */
+        }
+
+        #update-box p {
+            margin-bottom: 25px;
+            font-size: 1.1em;
+            line-height: 1.4;
+            color: #b9bbbe;
+        }
+
+        #update-box button {
+            background-color: #7289da;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 28px;
+            color: white;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #update-box button:hover {
+            background-color: #5b6eae;
+        }
+        #tooltip {
+            position: absolute;
+            display: none;
+            background: #18191c;
+            border: 1px solid #202225;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #dcddde;
+            pointer-events: none;
+            white-space: pre-line;
+            max-width: 400px;
+            border-radius: 5px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            user-select: none;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
 </head>
@@ -301,12 +378,21 @@
         </div>
         <!-- Tu peux ajouter ici plus tard une section QR code reader avec id="qrcode_reader_container" -->
     </div>
+
     <footer style="background-color: #1e1f22; color: #888; text-align: center; padding: 5px; font-size: 0.85rem;">
         <p style="margin: 0;">Personal project by <strong>ketchu13</strong> aka <strong>Søuris</strong> — <span
                 style="opacity: 0.8;">2025</span></p>
         <p style="margin: 0;font-size: 0.75rem; color: #666;">Not affiliated with Starry Studio or the game <em>Once
                 Human</em></p>
     </footer>
+    <div id="tooltip"></div>
+    <div id="update-overlay">
+        <div id="update-box">
+            <h2>Hey! 🚀 Update detected!</h2>
+            <p>A new version of this page is available.<br />Please reload to get the latest and greatest.</p>
+            <button id="reload-btn">Reload Now</button>
+        </div>
+    </div>
     <script>
         let memeticsData = [];
 
@@ -317,6 +403,53 @@
                 populateSelects();
             });
 
+        async function getLatestCommitSHA(owner, repo, branch = 'main') {
+            const url = `https://api.github.com/repos/${owner}/${repo}/commits/${branch}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
+                const data = await response.json();
+                return data.sha.substring(0, 7);
+            } catch (error) {
+                console.error('Failed to fetch latest commit SHA:', error);
+                return null;
+            }
+        }
+
+        function showUpdateOverlay() {
+            document.getElementById('update-overlay').style.display = 'block';
+        }
+
+        function reloadPage() {
+            // Tenter de vider le cache (reload complet)
+            // location.reload(true) est déprécié, donc on force reload avec un timestamp unique dans l'URL
+            const url = new URL(window.location.href);
+            url.searchParams.set('_', Date.now());
+            window.location.href = url.toString();
+        }
+
+        function startCheckingUpdates(owner, repo, branch = 'main', intervalMs = 300000) {
+            let lastSHA = null;
+
+            async function check() {
+                const latestSHA = await getLatestCommitSHA(owner, repo, branch);
+                if (!latestSHA) return;
+
+                if (lastSHA && latestSHA !== lastSHA) {
+                    console.log('Update detected! New commit:', latestSHA);
+                    showUpdateOverlay();
+                } else if (!lastSHA) {
+                    console.log('Initial commit SHA:', latestSHA);
+                } else {
+                    console.log('No update. Current commit SHA:', latestSHA);
+                }
+
+                lastSHA = latestSHA;
+            }
+
+            check();
+            setInterval(check, intervalMs);
+        }
         function populateSelects() {
             const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
             const container = document.getElementById('memetic_slots');
@@ -363,6 +496,21 @@
                         img.alt = item.name;
                         img.width = 32;
                         img.height = 32;
+
+                        img.addEventListener('mouseenter', e => {
+                            tooltip.innerHTML = `<strong>${item.effect_description}</strong><br>${item.effect_title}`;
+                            tooltip.style.display = 'block';
+                        });
+
+                        img.addEventListener('mousemove', e => {
+                            tooltip.style.left = (e.pageX + 15) + 'px';
+                            tooltip.style.top = (e.pageY + 15) + 'px';
+                        });
+
+                        img.addEventListener('mouseleave', () => {
+                            tooltip.style.display = 'none';
+                        });
+
 
                         const span = document.createElement('span');
                         span.textContent = item.name;
@@ -519,14 +667,19 @@
                 }
             });
 
-            // Ajoute les memetics sélectionnés
+            // Ajout des memetics sélectionnés
             data += memetics_d.join(',') + '#';
-            //
+            // debug
             //const outputPre = document.getElementById('output');
             //outputPre.textContent = data
 
             generateQRCode(data, player, server, level);
         }
+        document.getElementById('reload-btn').addEventListener('click', reloadPage);
+
+        // Lancer la vérification
+        startCheckingUpdates('ketchu13', 'oh_tools', 'main', 10 * 1000); // check toutes les 10 secondes
+
     </script>
 </body>
 

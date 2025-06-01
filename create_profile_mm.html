@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO Metadata -->
+    <meta name="description" content="Memetics builder for Once Human - Customize your build and share your setup.">
+    <meta name="keywords" content="Once Human, memetics, build, profile, MMO, sci-fi, survival">
+    <meta name="author" content="ketchu13">
+
+    <!-- Language -->
+    <meta http-equiv="Content-Language" content="en">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://www.ketchu-free-party.fr/oh/favicon.ico">
+
+    <!-- Page Title -->
+    <title>Once Human - Memetics Builder</title>
+
+    <!-- Open Graph for social sharing (Facebook, Discord, etc.) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.ketchu-free-party.fr/oh/create_profile_mm.html?v=2">
+    <meta property="og:title" content="Once Human - Memetics Profile Builder">
+    <meta property="og:description"
+        content="Create and share your Once Human Memetics build. View and optimize your setup easily.">
+    <meta property="og:image" content="https://www.ketchu-free-party.fr/oh/prodimg/preview_cpmm.png?v=2">
+
+    <style>
+        :root {
+            --bg-color: #36393f;
+            --border-color: #72767d;
+            --highlight: #5865f2;
+            --input-bg: #202225;
+            --text-color: #dcddde;
+            --menu-txt-color: #5a7fa5;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        #main_container {
+            margin: auto;
+            max-width: 800px;
+            margin-bottom: 50px;
+        }
+
+        #header {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        /* Barre de menu sous le header */
+        #menu_bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #72767d;
+            border-top: 1px solid #72767d;
+            padding-bottom: 8px;
+            padding-top: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #dcddde;
+        }
+
+        #menu_bar a {
+            color: #5a7fa5;
+            text-decoration: none;
+            padding-bottom: 4px;
+            border-bottom: 3px solid transparent;
+            border-top: 3px solid transparent;
+            transition: border-color 0.3s, color 0.3s;
+            cursor: pointer;
+        }
+
+        #menu_bar a:hover {
+            color: #5865f2;
+            border-bottom-color: #5865f2;
+        }
+
+        textarea,
+        input,
+        select,
+        button {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            color: var(--text-color);
+            margin: 10px 0;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: var(--highlight);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4752c4;
+        }
+
+        .custom-dropdown-wrapper {
+            margin-bottom: 15px;
+        }
+
+        .custom-dropdown {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 8px;
+            position: relative;
+            user-select: none;
+        }
+
+        .custom-dropdown .selected {
+            align-items: center;
+            display: flex;
+            gap: 10px;
+        }
+
+        .custom-dropdown .options {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            display: none;
+            left: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            z-index: 10;
+            border-radius: 0 0 5px 5px;
+        }
+
+        .custom-dropdown .options.show {
+            display: block;
+        }
+
+        .custom-dropdown .option {
+            align-items: center;
+            display: flex;
+            gap: 10px;
+            padding: 6px;
+            cursor: pointer;
+        }
+
+        .custom-dropdown .option:hover {
+            background-color: #40444b;
+        }
+
+        .custom-dropdown .option img {
+            border-radius: 4px;
+            height: 32px;
+            width: 32px;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        #input_container,
+        #result_container,
+        #qrcode_reader_container {
+            max-width: 900px;
+            width: 100%;
+            background-color: #2f3136;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+        }
+
+        h2,
+        h1 {
+            color: #fff;
+            margin-bottom: 15px;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        h4 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #b9bbbe;
+        }
+
+        #qrcode {
+            width: 258px;
+            height: 258px;
+            margin: 20px auto 0 auto;
+            display: block;
+            overflow: hidden;
+        }
+
+        #qrcode canvas {
+            width: 258px !important;
+            height: 258px !important;
+            image-rendering: pixelated;
+            display: block;
+            margin: 0 auto;
+        }
+
+        #downloadBtn {
+            display: none;
+            margin: 10px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            background-color: var(--highlight);
+            color: white;
+            cursor: pointer;
+            display: block;
+            max-width: 258px;
+        }
+
+        #downloadBtn:hover {
+            background-color: #4752c4;
+        }
+
+        .ribbon {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 9999;
+            overflow: hidden;
+            width: 150px;
+            height: 150px;
+            pointer-events: none;
+        }
+
+        .ribbon span {
+            position: absolute;
+            display: block;
+            width: 225px;
+            padding: 10px 0;
+            background: #5865F2;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            font-family: sans-serif;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            top: 30px;
+            right: -55px;
+            transform: rotate(45deg);
+            pointer-events: auto;
+        }
+
+        .neon {
+            color: #00FFFF;
+            text-shadow:
+                0 0 5px #00FFFF,
+                0 0 10px #00FFFF,
+                0 0 20px #00FFFF;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+</head>
+
+<body>
+    <a href="#" class="ribbon" title="Work in progress">
+        <span>BETA VERSION</span>
+    </a>
+    <div id="main_container">
+        <div id="header">
+            <h1>Once Human - Memetics</h1>
+        </div>
+        <nav id="menu_bar">
+            <a href="index.html">QR Code Reader</a>
+            <a href="#input_container">Memetics Profile Generator</a>
+        </nav>
+        <div id="input_container">
+            <h4>Memetics Profile Generator</h4>
+            <label for="player">User Name</label>
+            <input type="text" id="player" name="player" placeholder="Rosetta42" />
+            <label for="server">Serveur</label>
+            <input type="text" id="server" name="server" placeholder="Manibus-X179" value="Manibus-X179" />
+            <label for="level">Level</label>
+            <input type="number" id="level" name="level" value="50" />
+            <h4>Choose Memetics Slots</h4>
+            <div id="memetic_slots"></div>
+            <button onclick="generateProfile()">Generate Memetics profile</button>
+            <div id="qrcode"></div>
+            <button id="downloadBtn" style="display: none;">Download QR Code</button>
+            <pre id="output"></pre>
+        </div>
+        <!-- Tu peux ajouter ici plus tard une section QR code reader avec id="qrcode_reader_container" -->
+    </div>
+    <footer style="background-color: #1e1f22; color: #888; text-align: center; padding: 5px; font-size: 0.85rem;">
+        <p style="margin: 0;">Personal project by <strong>ketchu13</strong> aka <strong>Søuris</strong> — <span
+                style="opacity: 0.8;">2025</span></p>
+        <p style="margin: 0;font-size: 0.75rem; color: #666;">Not affiliated with Starry Studio or the game <em>Once
+                Human</em></p>
+    </footer>
+    <script>
+        let memeticsData = [];
+
+        fetch('memetics.json')
+            .then((res) => res.json())
+            .then((data) => {
+                memeticsData = data.memetics;
+                populateSelects();
+            });
+
+        function populateSelects() {
+            const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+            const container = document.getElementById('memetic_slots');
+
+            slots.forEach((level) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'custom-dropdown-wrapper';
+
+                const label = document.createElement('label');
+                label.textContent = `Level ${level}`;
+                wrapper.appendChild(label);
+
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = `s${level}`;
+                hiddenInput.id = `s${level}`;
+                wrapper.appendChild(hiddenInput);
+
+                const dropdown = document.createElement('div');
+                dropdown.className = 'custom-dropdown';
+                dropdown.tabIndex = 0;
+
+                const selected = document.createElement('div');
+                selected.className = 'selected';
+                selected.textContent = 'Select a memetic for level ' + level + '...';
+                dropdown.appendChild(selected);
+
+                const options = document.createElement('div');
+                options.className = 'options';
+
+                memeticsData.forEach((item) => {
+                    // on ajoute l'item que s'il est compatible avec le niveau su slot
+                    // item.levels est une liste de niveaux compatibles
+                    if (item.levels.includes(level)) {
+
+                        const option = document.createElement('div');
+                        option.className = 'option';
+                        option.dataset.value = item.id;
+
+                        const img = document.createElement('img');
+                        img.src = './memetics_icons_cropped/' + item.imgUrl;
+                        img.alt = item.name;
+                        img.width = 32;
+                        img.height = 32;
+
+                        const span = document.createElement('span');
+                        span.textContent = item.name;
+
+                        option.appendChild(img);
+                        option.appendChild(span);
+                        options.appendChild(option);
+
+                        option.onclick = (e) => {
+                            e.stopPropagation();
+                            selected.textContent = '';
+                            const cloneImg = img.cloneNode(true);
+                            selected.appendChild(cloneImg);
+                            selected.appendChild(document.createTextNode(' ' + item.name));
+                            hiddenInput.value = item.id;
+                            options.classList.remove('show');
+                        };
+                    }
+                });
+
+
+                dropdown.appendChild(options);
+
+                dropdown.onclick = (e) => {
+                    e.stopPropagation();
+                    // Fermer les autres dropdowns ouvertes
+                    document.querySelectorAll('.custom-dropdown .options.show').forEach((el) => {
+                        if (el !== options) el.classList.remove('show');
+                    });
+                    options.classList.toggle('show');
+                };
+
+                wrapper.appendChild(dropdown);
+                container.appendChild(wrapper);
+            });
+        }
+
+        // Ferme les dropdown si clic hors dropdown
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.custom-dropdown .options.show').forEach((el) => {
+                el.classList.remove('show');
+            });
+        });
+
+
+        function compressAndEncode(obj) {
+            const json = JSON.stringify(obj);
+            const binary = pako.deflate(json);
+            return btoa(String.fromCharCode(...binary));
+        }
+
+        function generateQRCode(data, player, server, level) {
+
+            const qrSize = 526;
+            const borderSize = 40;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            document.body.appendChild(tempDiv);
+
+            new QRCode(tempDiv, {
+                text: data,
+                width: qrSize,
+                height: qrSize,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H,
+            });
+
+            setTimeout(() => {
+                // Vérifier si le QR code a été généré correctement
+                const qrCanvas = tempDiv.querySelector('canvas');
+                if (!qrCanvas) {
+                    alert('Error generating QR code. Please try again.');
+                }
+                const logo_width = 64;
+
+                // Créer un canvas final pour ajouter le QR code et les textes
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = qrSize + borderSize * 2;
+                finalCanvas.height = qrSize + borderSize * 2;
+
+                // Créer le contexte de dessin
+                const ctx = finalCanvas.getContext('2d');
+
+                // Fond blanc
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+                // Dessiner QR code au centre avec bordure
+                ctx.drawImage(qrCanvas, borderSize, borderSize);
+
+                // Ajouter le nom du personnage en haut et le server en bas
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.borderRadius = '5px';
+                ctx.fillText(player || 'Username', finalCanvas.width / 2, 28);
+                ctx.fillText(server || 'Server', finalCanvas.width / 2, finalCanvas.height - 10);
+
+                // get image from file
+                img_logo = new Image();
+                img_logo.src = './prodimg/oh32x32.png';
+
+                // ajout de l'image du logo au centre avec une taille de 32x32 pixels
+                img_logo.onload = () => {
+                    ctx.drawImage(img_logo, (finalCanvas.width - logo_width) / 2, (finalCanvas.height - logo_width) / 2, logo_width, logo_width);
+                };
+                img_logo.onerror = () => {
+                    console.error('Failed to load the logo image.');
+                };
+
+                // Nettoyer temporaire
+                tempDiv.remove();
+
+                // Afficher le QR code dans le div prévu
+                const qrcodeDiv = document.getElementById('qrcode');
+                qrcodeDiv.innerHTML = '';
+                qrcodeDiv.appendChild(finalCanvas);
+
+                // Afficher le bouton de téléchargement
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.style.display = 'block';
+                downloadBtn.onclick = () => {
+                    const link = document.createElement('a');
+                    link.download = `oncehuman_memetics_profile_${player || 'profile'}.png`;
+                    link.href = finalCanvas.toDataURL('image/png');
+                    link.click();
+                };
+            }, 50);
+        }
+
+        function generateProfile() {
+            // Récupère les valeurs des champs
+            const player = document.getElementById('player').value.trim();
+            const server = document.getElementById('server').value.trim();
+            const level = parseInt(document.getElementById('level').value) || 0;
+
+            if (!player || !server || !level) {
+                alert('Please fill in all fields: Player Name, Server, and Level.');
+                return;
+            }
+
+            data = player + '#' + server + '#' + level + '#';
+
+            // Récupère tous les selects custom
+            const inputs = document.querySelectorAll('#memetic_slots input[type="hidden"]');
+            memetics_d = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            inputs.forEach((input) => {
+                if (input.value) {
+                    const levelIndex = parseInt(input.name.replace('s', '')) / 5 - 1; // Convertit s5, s10, ... en index 0, 1, ...
+                    memetics_d[levelIndex] = input.value;
+                }
+            });
+
+            // Ajoute les memetics sélectionnés
+            data += memetics_d.join(',') + '#';
+            //
+            const outputPre = document.getElementById('output');
+            outputPre.textContent = data
+
+            generateQRCode(data, player, server, level);
+        }
+    </script>
+</body>
+
+</html>

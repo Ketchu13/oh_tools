@@ -364,10 +364,11 @@
             const tooltip = document.getElementById('tooltip');
 
             const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
-            memetics_data = userData.memetics;
+            memetics_data = memeticsData
+            ;
             slots.forEach(slot => {
-                if (memetics_data['s' + slot]) {
-                    const item = memeticsData.find(m => m.id === memetics_data['s' + slot]);
+                if (userData.memetics['s' + slot]) {
+                    const item = memeticsData.find(m => m.id === userData.memetics['s' + slot]);
                     if (item) {
                         createTile(container, item, slot);
                     } else {

@@ -372,7 +372,12 @@
                     if (item) {
                         createTile(container, item, slot);
                     } else {
-                        console.warn(`Item not found for slot s${slot}`);
+                        createTile(container, {
+                            name: 'Not set..',
+                            imgUrl: 'empty.png',
+                            effect_description: 'No description available.',
+                            effect_title: 'No Effect available.'
+                        }, slot);
                     }
                 } else {
                     console.warn(`No data for slot s${slot}`);

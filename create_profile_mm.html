@@ -347,6 +347,8 @@
                 const options = document.createElement('div');
                 options.className = 'options';
 
+                // sort alphabetically by name
+                memeticsData.sort((a, b) => a.name.localeCompare(b.name));
                 memeticsData.forEach((item) => {
                     // on ajoute l'item que s'il est compatible avec le niveau su slot
                     // item.levels est une liste de niveaux compatibles

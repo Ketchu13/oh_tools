@@ -178,6 +178,8 @@
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+
+            border-radius: 5px;
         }
 
         h2,
@@ -204,6 +206,7 @@
             margin: 20px auto 0 auto;
             display: block;
             overflow: hidden;
+            border-radius: 5px;
         }
 
         #qrcode canvas {
@@ -212,6 +215,7 @@
             image-rendering: pixelated;
             display: block;
             margin: 0 auto;
+            border-radius: 5px;
         }
 
         #downloadBtn {
@@ -329,6 +333,7 @@
         #update-box button:hover {
             background-color: #5b6eae;
         }
+
         #tooltip {
             position: absolute;
             display: none;
@@ -479,7 +484,7 @@
 
                 const options = document.createElement('div');
                 options.className = 'options';
-                
+
                 const tooltip = document.getElementById('tooltip');
                 // sort alphabetically by name
                 memeticsData.sort((a, b) => a.name.localeCompare(b.name));

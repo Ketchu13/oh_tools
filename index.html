@@ -368,7 +368,7 @@
             ;
             slots.forEach(slot => {
                 if (userData.memetics['s' + slot]) {
-                    const item = memeticsData.find(m => m.id === userData.memetics['s' + slot]);
+                    const item = memeticsData.find(m => m.id === parseInt(userData.memetics['s' + slot]));
                     if (item) {
                         createTile(container, item, slot);
                     } else {

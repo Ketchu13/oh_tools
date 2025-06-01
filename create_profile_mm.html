@@ -423,7 +423,12 @@
     </div>
     <script>
         let memeticsData = [];
-
+        const imgempty = new Image();
+        imgempty.src = './memetics_icons_cropped/empty.png';
+        imgempty.width = 96;
+        imgempty.height = 96;
+        imgempty.alt = 'empty';
+        
         fetch('memetics.json')
             .then((res) => res.json())
             .then((data) => {
@@ -772,6 +777,14 @@
                 img_mm.style.display = 'block';
                 img_mm.innerHTML = '';
                 const levelImageMap = {};
+                const imgempty = new Image();
+                imgempty.src = './memetics_icons_cropped/empty.png';
+                imgempty.width = 96;
+                imgempty.height = 96;
+                imgempty.alt = 'empty';
+                for (let i = 5; i <= 50; i += 5) {
+                    levelImageMap[i] = imgempty; // initialise avec une image vide
+                }
                 memetics_d.forEach((memeticId, index) => {
                     if (memeticId) {
                         const memetic = memeticsData.find(m => m.id === parseInt(memeticId));

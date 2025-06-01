@@ -363,38 +363,48 @@
             container.innerHTML = ''; // reset
             const tooltip = document.getElementById('tooltip');
 
-            Object.entries(userData)
-                .filter(([key, value]) => key.startsWith('s'))
-                .sort((a, b) => parseInt(a[0].substring(1)) - parseInt(b[0].substring(1)))
-                .forEach(([key, id]) => {
-                    const tileNumber = key.substring(1);
-                    const item = memeticsData.find(i => i.id === id);
-                    if (!item) return;
+            const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+            memetics_data = userData.memetics;
+            slots.forEach(slot => {
+                if (memetics_data['s' + slot]) {
+                    const item = memeticsData.find(m => m.id === memetics_data['s' + slot]);
+                    if (item) {
+                        createTile(container, item, slot);
+                    } else {
+                        console.warn(`Item not found for slot s${slot}`);
+                    }
+                } else {
+                    console.warn(`No data for slot s${slot}`);
+                }
+            });            
+        }
+        function createTile(container, item, slot) {
 
-                    const tile = document.createElement('div');
-                    tile.className = 'tile';
-                    tile.innerHTML = `
-                    <div class="tile-number">${tileNumber}</div>
-                    <div class="tile-image"><img src="./memetics_icons_cropped/${item.imgUrl}" alt="${item.name}"></div>
-                    <div class="tile-name">${item.name}</div>
-                  `;
+            const tileNumber = slot;
 
-                    tile.addEventListener('mouseenter', e => {
-                        tooltip.innerHTML = `<strong>${item.effect_description}</strong><br>${item.effect_title}`;
-                        tooltip.style.display = 'block';
-                    });
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.innerHTML = `
+            <div class="tile-number">${tileNumber}</div>
+            <div class="tile-image"><img src="./memetics_icons_cropped/${item.imgUrl}" alt="${item.name}"></div>
+            <div class="tile-name">${item.name}</div>
+            `;
 
-                    tile.addEventListener('mousemove', e => {
-                        tooltip.style.left = (e.pageX + 15) + 'px';
-                        tooltip.style.top = (e.pageY + 15) + 'px';
-                    });
+            tile.addEventListener('mouseenter', e => {
+                tooltip.innerHTML = `<strong>${item.effect_description}</strong><br>${item.effect_title}`;
+                tooltip.style.display = 'block';
+            });
 
-                    tile.addEventListener('mouseleave', () => {
-                        tooltip.style.display = 'none';
-                    });
+            tile.addEventListener('mousemove', e => {
+                tooltip.style.left = (e.pageX + 15) + 'px';
+                tooltip.style.top = (e.pageY + 15) + 'px';
+            });
 
-                    container.appendChild(tile);
-                });
+            tile.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
+
+            container.appendChild(tile);
         }
     </script>
     <script>

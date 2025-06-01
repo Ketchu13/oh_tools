@@ -398,7 +398,9 @@
             .then(res => res.json())
             .then(data => memeticsData = data.memetics)
             .catch(err => alert("Erreur de chargement du JSON principal : " + err));
-            async function getLatestCommitSHA(owner, repo, branch = 'main') {
+        
+        
+        async function getLatestCommitSHA(owner, repo, branch = 'main') {
             const url = `https://api.github.com/repos/${owner}/${repo}/commits/${branch}`;
             try {
                 const response = await fetch(url);
@@ -410,7 +412,6 @@
                 return null;
             }
         }
-
         function showUpdateOverlay() {
             document.getElementById('update-overlay').style.display = 'block';
         }
@@ -453,6 +454,7 @@
                 "'": '&#39;',
             })[m]);
         }
+        
         function generateTiles(userData) {
             if (!userData) {
                 alert("Invalid JSON format: " + err.message);
@@ -581,6 +583,12 @@
             };
             reader.readAsDataURL(file);
         }
+    
+        document.getElementById('reload-btn').addEventListener('click', reloadPage);
+
+        // Lancer la vérification
+        startCheckingUpdates('ketchu13', 'oh_tools', 'main', 10 * 1000); // check toutes les 10 secondes
+
     </script>
 </body>
 

@@ -352,9 +352,9 @@
 
             // Afficher infos joueur
             const info = `
-                <strong>Joueur :</strong> ${userData.player || 'N/A'}<br>
-                <strong>Serveur :</strong> ${userData.server || 'N/A'}<br>
-                <strong>Niveau :</strong> ${userData.level || 'N/A'}<br>
+                <strong>Joueur :</strong> ${escapeHTML(userData.player) || 'N/A'}<br>
+                <strong>Serveur :</strong> ${escapeHTML(userData.server) || 'N/A'}<br>
+                <strong>Niveau :</strong> ${escapeHTML(userData.level) || 'N/A'}<br>
               `;
             document.getElementById('playerInfo').innerHTML = info;
 

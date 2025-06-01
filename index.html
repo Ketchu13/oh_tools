@@ -343,7 +343,15 @@
             // Parse JSON
             return JSON.parse(json);
         }
-
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>"']/g, (m) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+            })[m]);
+        }
         function generateTiles(userData) {
             if (!userData) {
                 alert("Invalid JSON format: " + err.message);
@@ -365,7 +373,7 @@
 
             const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
             memetics_data = memeticsData
-            ;
+                ;
             slots.forEach(slot => {
                 if (userData.memetics['s' + slot]) {
                     const item = memeticsData.find(m => m.id === parseInt(userData.memetics['s' + slot]));
@@ -382,7 +390,7 @@
                 } else {
                     console.warn(`No data for slot s${slot}`);
                 }
-            });            
+            });
         }
         function createTile(container, item, slot) {
 

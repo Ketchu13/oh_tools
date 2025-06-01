@@ -200,12 +200,30 @@
             color: #b9bbbe;
         }
 
-        #qrcode {
+        #qrcode,
+        #img_mm {
             width: 258px;
             height: 258px;
             margin: 20px auto 0 auto;
             display: block;
             overflow: hidden;
+            border-radius: 5px;
+        }
+
+        #img_mm {
+            width: 278px !important;
+            height: 545px !important;
+            margin: 20px auto 0 auto;
+            display: block;
+            overflow: hidden;
+            border-radius: 5px;
+        }
+
+        #img_mm canvas {
+            width: 278px !important;
+            height: 545px !important;
+            display: block;
+            margin: 0 auto;
             border-radius: 5px;
         }
 
@@ -218,7 +236,8 @@
             border-radius: 5px;
         }
 
-        #downloadBtn {
+        #downloadBtn,
+        #downloadImgmmBtn {
             display: none;
             margin: 10px auto;
             padding: 10px 20px;
@@ -232,7 +251,8 @@
             max-width: 258px;
         }
 
-        #downloadBtn:hover {
+        #downloadBtn:hover,
+        #downloadImgmmBtn:hover {
             background-color: #4752c4;
         }
 
@@ -379,6 +399,8 @@
             <button onclick="generateProfile()">Generate Memetics profile</button>
             <div id="qrcode"></div>
             <button id="downloadBtn" style="display: none;">Download QR Code</button>
+            <div id="img_mm"></div>
+            <button id="downloadImgmmBtn" style="display: none;">Download image</button>
             <pre id="output"></pre>
         </div>
         <!-- Tu peux ajouter ici plus tard une section QR code reader avec id="qrcode_reader_container" -->
@@ -403,11 +425,28 @@
 
         fetch('memetics.json')
             .then((res) => res.json())
-            .then((data) => {memeticsData = data.memetics;                
+            .then((data) => {
+                memeticsData = data.memetics;
                 populateSelects();
             })
             .catch(err => alert("Erreur de chargement du JSON principal : " + err));
+       
+        function fitTextToWidth(ctx, text, maxWidth, initialFontSize = 13, minFontSize = 6, fontFamily = "Arial") {
+            let fontSize = initialFontSize;
 
+            // On descend jusqu'à ce que ça rentre ou qu'on atteigne la taille minimale
+            while (fontSize >= minFontSize) {
+                ctx.font = `${fontSize}px ${fontFamily}`;
+                const metrics = ctx.measureText(text);
+                if (metrics.width <= maxWidth) {
+                    return fontSize;
+                }
+                fontSize -= 1;
+            }
+
+            // Si aucun ne passe, retourne la taille minimale
+            return minFontSize;
+        }
         async function getLatestCommitSHA(owner, repo, branch = 'main') {
             const url = `https://api.github.com/repos/${owner}/${repo}/commits/${branch}`;
             try {
@@ -452,7 +491,7 @@
             check();
             setInterval(check, intervalMs);
         }
-        
+
         function escapeHTML(str) {
             return String(str).replace(/[&<>"']/g, (m) => ({
                 '&': '&amp;',
@@ -462,7 +501,7 @@
                 "'": '&#39;',
             })[m]);
         }
-        
+
         function populateSelects() {
             const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
             const container = document.getElementById('memetic_slots');
@@ -562,13 +601,90 @@
             });
         }
 
-        
+
         function compressAndEncode(obj) {
             const json = JSON.stringify(obj);
             const binary = pako.deflate(json);
             return btoa(String.fromCharCode(...binary));
         }
+        function generateMemeticsTableImage(part1, part2, levelImageMap) {
+            const tileSize = 96; // taille de l'image
+            const padding = 3;
+            const fontSize = 13;
+            const headerHeight = 50;
+            const rowHeight = tileSize + padding;
+            const rows = 5;
+            const cols = 4;
+            const canvasWidth = 13 + 30 + tileSize + 13 + 30 + tileSize;
+            const canvasHeight = headerHeight + rows * rowHeight;
 
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            canvas.style.borderRadius = '5px';
+            const ctx = canvas.getContext('2d');
+            //reduce size of part1 and part2 to 50
+            part1 = part1.length > 20 ? part1.substring(0, 20) + '...' : part1;
+            part2 = part2.length > 30 ? part2.substring(0, 30) + '...' : part2;
+            if (part1.length + part2.length > 50) {
+                part1 = part1.substring(0, 20) + '...';
+                part2 = part2.substring(0, 30) + '...';
+            }
+            // Fond
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Header
+            ctx.fillStyle = 'white';
+            const fontSized = fitTextToWidth(ctx, `${part1} - ${part2}`, 545);
+            ctx.font = `bold ${fontSized}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText(`${part1} - ${part2}`, canvasWidth / 2, 30);
+
+            // Colonnes gauche (5 → 25) et droite (30 → 50)
+            const leftLevels = [5, 10, 15, 20, 25];
+            const rightLevels = [30, 35, 40, 45, 50];
+
+            ctx.font = `${fontSize}px sans-serif`;
+            ctx.textAlign = 'left';
+
+            for (let i = 0; i < rows; i++) {
+                const y = headerHeight + i * rowHeight + fontSize / 2 + rowHeight / 2;
+
+                // Colonne 1 : niveau gauche
+                ctx.fillStyle = 'white';
+                ctx.fillText(`${leftLevels[i]}`, 13, y);
+
+                // Colonne 2 : image gauche
+                const imgLeft = levelImageMap[leftLevels[i]];
+                if (imgLeft) {
+                    ctx.drawImage(
+                        imgLeft,
+                        13 + 30,
+                        headerHeight + i * rowHeight,
+                        tileSize,
+                        tileSize
+                    );
+                }
+
+                // Colonne 3 : niveau droite
+                ctx.fillText(`${rightLevels[i]}`, 13 + 30 + tileSize + 13, y);
+
+                // Colonne 4 : image droite
+                const imgRight = levelImageMap[rightLevels[i]];
+                if (imgRight) {
+                    ctx.drawImage(
+                        imgRight,
+                        13 + 30 + tileSize + 13 + 30,
+                        headerHeight + i * rowHeight,
+                        tileSize,
+                        tileSize
+                    );
+                }
+            }
+
+            return canvas;
+        }
         function generateQRCode(data, player, server, level) {
 
             const qrSize = 526;
@@ -648,6 +764,40 @@
                     link.href = finalCanvas.toDataURL('image/png');
                     link.click();
                 };
+
+                const img_mm = document.getElementById('img_mm');
+                img_mm.innerHTML = '';
+                const levelImageMap = {};
+                memetics_d.forEach((memeticId, index) => {
+                    if (memeticId) {
+                        const memetic = memeticsData.find(m => m.id === parseInt(memeticId));
+                        if (!memetic) {
+                            console.warn(`Memetic with ID ${memeticId} not found.`);
+                            return;
+                        }
+                        if (memetic) {
+                            const img = new Image();
+                            img.src = './memetics_icons_cropped/' + memetic.imgUrl;
+                            img.width = 96;
+                            img.height = 96;
+                            img.alt = memetic.name;
+                            levelImageMap[(index + 1) * 5] = img; // map niveau à l'image
+                        }
+                    }
+                });
+                const part1 = player || 'Profile';
+                const part2 = server || 'Server';
+                const canvas_mm = generateMemeticsTableImage(part1, part2, levelImageMap);
+                img_mm.appendChild(canvas_mm);
+                const downloadImgmmBtn = document.getElementById('downloadImgmmBtn');
+                downloadImgmmBtn.style.display = 'block';
+                downloadImgmmBtn.onclick = () => {
+                    const link = document.createElement('a');
+                    link.download = `oncehuman_memetics_table_${part1}_${part2}.png`;
+                    link.href = canvas_mm.toDataURL('image/png');
+                    link.click();
+                };
+
             }, 50);
         }
 
@@ -682,7 +832,7 @@
 
             generateQRCode(data, player, server, level);
         }
-        
+
         // Ferme les dropdown si clic hors dropdown
         document.addEventListener('click', () => {
             document.querySelectorAll('.custom-dropdown .options.show').forEach((el) => {

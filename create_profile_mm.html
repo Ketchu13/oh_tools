@@ -163,8 +163,8 @@
 
         .custom-dropdown .option img {
             border-radius: 4px;
-            height: 32px;
-            width: 32px;
+            height: 48px;
+            width: 48px;
             user-select: none;
             pointer-events: none;
         }
@@ -178,7 +178,6 @@
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
-
             border-radius: 5px;
         }
 
@@ -205,18 +204,20 @@
             width: 258px;
             height: 258px;
             margin: 20px auto 0 auto;
-            display: block;
+
             overflow: hidden;
             border-radius: 5px;
+            display: none;
         }
 
         #img_mm {
             width: 278px !important;
             height: 545px !important;
             margin: 20px auto 0 auto;
-            display: block;
+
             overflow: hidden;
             border-radius: 5px;
+            display: none;
         }
 
         #img_mm canvas {
@@ -547,11 +548,8 @@
                         const img = document.createElement('img');
                         img.src = './memetics_icons_cropped/' + item.imgUrl;
                         img.alt = item.name;
-                        img.width = 32;
-                        img.height = 32;
-
-
-
+                        img.width = 48;
+                        img.height = 48;
 
                         const span = document.createElement('span');
                         span.textContent = item.name;
@@ -601,7 +599,6 @@
             });
         }
 
-
         function compressAndEncode(obj) {
             const json = JSON.stringify(obj);
             const binary = pako.deflate(json);
@@ -615,8 +612,8 @@
             const rowHeight = tileSize + padding;
             const rows = 5;
             const cols = 4;
-            const canvasWidth = 13 + 30 + tileSize + 13 + 30 + tileSize;
-            const canvasHeight = headerHeight + rows * rowHeight;
+            const canvasWidth = 13 + 30 + tileSize + 13 + 30 + tileSize + 13;
+            const canvasHeight = headerHeight + rows * rowHeight + 13;
 
             const canvas = document.createElement('canvas');
             canvas.width = canvasWidth;
@@ -752,6 +749,7 @@
 
                 // Afficher le QR code dans le div prévu
                 const qrcodeDiv = document.getElementById('qrcode');
+                qrcodeDiv.style.display = 'block';
                 qrcodeDiv.innerHTML = '';
                 qrcodeDiv.appendChild(finalCanvas);
 
@@ -766,6 +764,7 @@
                 };
 
                 const img_mm = document.getElementById('img_mm');
+                img_mm.style.display = 'block';
                 img_mm.innerHTML = '';
                 const levelImageMap = {};
                 memetics_d.forEach((memeticId, index) => {

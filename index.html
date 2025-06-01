@@ -274,7 +274,7 @@
             transform: rotate(45deg);
             pointer-events: auto;
         }
-        
+
         /* Overlay full screen fond sombre transparent */
         #update-overlay {
             display: none;
@@ -364,7 +364,7 @@
                 <div class="inputfile">
                     <label class="upload-button">
                         📷 Upload QR Code image
-                        <input type="file" accept="image/*" onchange="handleQRCodeUpload(this)" hidden>
+                        <input id="fileInput" type="file" accept="image/*" hidden>
                     </label>
                 </div>
             </div>
@@ -398,12 +398,17 @@
             .then(res => res.json())
             .then(data => memeticsData = data.memetics)
             .catch(err => alert("Erreur de chargement du JSON principal : " + err));
-        
-        
+
+
         async function getLatestCommitSHA(owner, repo, branch = 'main') {
             const url = `https://api.github.com/repos/${owner}/${repo}/commits/${branch}`;
             try {
                 const response = await fetch(url);
+                remaining = response.headers.get('X-RateLimit-Remaining');
+                if (remaining === '0') {
+                    console.warn('GitHub API rate limit reached. Please try again later.');
+                    return null;
+                }
                 if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
                 const data = await response.json();
                 return data.sha.substring(0, 7);
@@ -454,7 +459,7 @@
                 "'": '&#39;',
             })[m]);
         }
-        
+
         function generateTiles(userData) {
             if (!userData) {
                 alert("Invalid JSON format: " + err.message);
@@ -492,7 +497,7 @@
                     console.warn(`No data for slot s${slot}`);
                 }
             });
-        }        
+        }
         function createTile(container, item, slot) {
 
             const tileNumber = slot;
@@ -583,9 +588,21 @@
             };
             reader.readAsDataURL(file);
         }
-    
-        document.getElementById('reload-btn').addEventListener('click', reloadPage);
 
+        document.getElementById('reload-btn').addEventListener('click', reloadPage);
+        const fileInput = document.getElementById('fileInput');
+
+        fileInput.addEventListener('click', () => {
+            // Réinitialise la valeur AVANT de cliquer pour forcer le onchange
+            fileInput.value = '';
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                handleQRCodeUpload(fileInput);
+            }
+        });
         // Lancer la vérification
         startCheckingUpdates('ketchu13', 'oh_tools', 'main', 60 * 1000); // check toutes les 10 secondes
 

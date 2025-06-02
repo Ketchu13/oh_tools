@@ -210,7 +210,8 @@
             display: none;
         }
 
-        #img_mm {
+        #img_mm,
+        #img_mm_pw {
             width: 278px !important;
             height: 545px !important;
             margin: 20px auto 0 auto;
@@ -221,6 +222,14 @@
         }
 
         #img_mm canvas {
+            width: 278px !important;
+            height: 545px !important;
+            display: block;
+            margin: 0 auto;
+            border-radius: 5px;
+        }
+
+        #img_mm_pw canvas {
             width: 278px !important;
             height: 545px !important;
             display: block;
@@ -371,8 +380,62 @@
             z-index: 1000;
             user-select: none;
         }
+
+        #last_profiles {
+            border: 1px solid #72767d;
+            background-color: #2f3136;
+            width: 300px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            box-shadow: 5px 3px 8px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            position: absolute;
+            padding-bottom: 4px;
+            text-align: center;
+            right: 20px;
+            top: 150px;
+        }
+
+        #last_profiles h2 {
+            margin-top: 0;
+            color: #fff;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 0;
+        }
+
+        #last_profiles p {
+            color: #b9bbbe;
+            font-size: 14px;
+            margin-bottom: 4px;
+            width: 100%;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        li {
+            list-style: none;
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #40444b;
+            border-radius: 3px;
+            color: #dcddde;
+            font-size: 14px;
+        }
+
+        ul {
+            padding: 0%;
+            margin: 0;
+        }
     </style>
     <script src="./js/qrcode.min.js"></script>
+    <!-- Firebase App (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <!-- Firebase Firestore (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
 </head>
 
 <body>
@@ -406,13 +469,19 @@
         </div>
         <!-- Tu peux ajouter ici plus tard une section QR code reader avec id="qrcode_reader_container" -->
     </div>
-
+    <div id="last_profiles">
+        <h2>Last Memetics Profiles</h2>
+        <p>Last 3 profiles saved in the database:</p>
+        <ul id="last_profiles_list"></ul>
+        <div id="img_mm_pw"></div>
+    </div>
     <footer style="background-color: #1e1f22; color: #888; text-align: center; padding: 5px; font-size: 0.85rem;">
         <p style="margin: 0;">Personal project by <strong>ketchu13</strong> aka <strong>Søuris</strong> — <span
                 style="opacity: 0.8;">2025</span></p>
         <p style="margin: 0;font-size: 0.75rem; color: #666;">Not affiliated with Starry Studio or the game <em>Once
                 Human</em></p>
     </footer>
+
     <div id="tooltip"></div>
     <div id="update-overlay">
         <div id="update-box">
@@ -423,12 +492,27 @@
     </div>
     <script>
         let memeticsData = [];
+        let lastThreeProfiles = [];
         const imgempty = new Image();
         imgempty.src = './memetics_icons_cropped/empty.png';
         imgempty.width = 96;
         imgempty.height = 96;
         imgempty.alt = 'empty';
-        
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2_wLWe9dElA_jqlkxkfLldBzXeXa5l8U",
+            authDomain: "oncehumank13tools.firebaseapp.com",
+            projectId: "oncehumank13tools",
+            storageBucket: "oncehumank13tools.firebasestorage.app",
+            messagingSenderId: "766110090627",
+            appId: "1:766110090627:web:e8547f7018ff3777ff22b6",
+            measurementId: "G-YX55LK87YH"
+        };
+
+        // Initialisation
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         fetch('memetics.json')
             .then((res) => res.json())
             .then((data) => {
@@ -436,7 +520,41 @@
                 populateSelects();
             })
             .catch(err => alert("Erreur de chargement du JSON principal : " + err));
-       
+
+        async function getLastThreeProfiles() {
+            try {
+                const snapshot = await db
+                    .collection("memetics_profiles")
+                    .orderBy("createdAt")
+                    .limit(3)
+                    .get();
+
+                const profiles = [];
+                snapshot.forEach(doc => {
+                    profiles.push({ id: doc.id, ...doc.data() });
+                });
+
+                console.log("Derniers profils :", profiles);
+                return profiles;
+            } catch (error) {
+                console.error("Erreur lors de la récupération des profils :", error);
+                return [];
+            }
+        }
+
+        function saveProfileToFirestore(player, server, level, memetics) {
+            const profileData = {
+                player: player,
+                server: server,
+                level: level,
+                memetics: memetics,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            return db.collection('memetics_profiles').add(profileData)
+                .then(() => console.log('Profile saved successfully!'))
+                .catch((error) => console.error('Error saving profile:', error));
+        }
         function fitTextToWidth(ctx, text, maxWidth, initialFontSize = 13, minFontSize = 6, fontFamily = "Arial") {
             let fontSize = initialFontSize;
 
@@ -692,7 +810,41 @@
 
             return canvas;
         }
-        function generateQRCode(data, player, server, level) {
+        function generatPicture(profile_memetics, player_name, server, img_elem) {
+            img_elem.style.display = 'block';
+            img_elem.innerHTML = '';
+            const levelImageMap = {};
+            const imgempty = new Image();
+            imgempty.src = './memetics_icons_cropped/empty.png';
+            imgempty.width = 96;
+            imgempty.height = 96;
+            imgempty.alt = 'empty';
+            for (let i = 5; i <= 50; i += 5) {
+                levelImageMap[i] = imgempty; // initialise avec une image vide
+            }
+            profile_memetics.forEach((memeticId, index) => {
+                if (memeticId) {
+                    const memetic = memeticsData.find(m => m.id === parseInt(memeticId));
+                    if (!memetic) {
+                        console.warn(`Memetic with ID ${memeticId} not found.`);
+                        return;
+                    }
+                    if (memetic) {
+                        const img = new Image();
+                        img.src = './memetics_icons_cropped/' + memetic.imgUrl;
+                        img.width = 96;
+                        img.height = 96;
+                        img.alt = memetic.name;
+                        levelImageMap[(index + 1) * 5] = img; // map niveau à l'image
+                    }
+                }
+            });
+            const part1 = player_name || 'Profile';
+            const part2 = server || 'Server';
+            const canvas_mm = generateMemeticsTableImage(part1, part2, levelImageMap);
+            img_elem.appendChild(canvas_mm);
+        }
+        function generateQRCode(memetics_d_, data, player, server, level) {
 
             const qrSize = 526;
             const borderSize = 40;
@@ -785,7 +937,7 @@
                 for (let i = 5; i <= 50; i += 5) {
                     levelImageMap[i] = imgempty; // initialise avec une image vide
                 }
-                memetics_d.forEach((memeticId, index) => {
+                memetics_d_.forEach((memeticId, index) => {
                     if (memeticId) {
                         const memetic = memeticsData.find(m => m.id === parseInt(memeticId));
                         if (!memetic) {
@@ -846,8 +998,9 @@
             // debug
             //const outputPre = document.getElementById('output');
             //outputPre.textContent = data
+            saveProfileToFirestore(player, server, level, memetics_d);
+            generateQRCode(memetics_d, data, player, server, level);
 
-            generateQRCode(data, player, server, level);
         }
 
         // Ferme les dropdown si clic hors dropdown
@@ -861,6 +1014,48 @@
 
         // Lancer la vérification
         startCheckingUpdates('ketchu13', 'oh_tools', 'main', 60 * 1000); // check toutes les 10 secondes
+
+        getLastThreeProfiles().then(profiles => {
+
+            lastThreeProfiles = profiles;
+            // Afficher les 3 derniers profils
+            const list = document.getElementById('last_profiles_list');
+            if (profiles.length === 0) {
+                list.innerHTML = '<li>No profiles found.</li>';
+                return;
+            }
+            profiles.forEach(profile => {
+                const li = document.createElement('li');
+                // remplace tous les caractères sauf le premier et les 3 derniers par des * (bien sur si le pseudo fait 4 caracteres etc on gare moins
+                let player_name = ""
+                for (let i = 1; i < profile.player.length; i++) {
+                    if (i > 1 && i < profile.player.length - 2) {
+                        player_name += '*';
+                    } else {
+                        player_name += profile.player[i];
+                    }
+                }
+                li.textContent = `${player_name} (${profile.server})`;
+                // Ajouter un attribut data-id pour identifier le profil
+                li.dataset.id = profile.id;
+                tooltip = document.getElementById('img_mm_pw');
+                // Ajouter un gestionnaire d'événement pour le survol
+                li.addEventListener('mouseenter', () => {
+                    generatPicture(profile.memetics, player_name, profile.server, tooltip);
+                    tooltip.style.display = 'block';
+                });
+
+                li.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                    tooltip.innerHTML = '';
+                });
+                li.onclick = (e) => {
+                    e.stopPropagation();
+                    // todo
+                }
+                list.appendChild(li);
+            });
+        });
 
     </script>
 </body>

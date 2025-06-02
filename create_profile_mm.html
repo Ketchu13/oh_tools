@@ -435,6 +435,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <!-- Firebase Firestore (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 
 </head>
 
@@ -521,6 +522,21 @@
             })
             .catch(err => alert("Erreur de chargement du JSON principal : " + err));
 
+        function compressAndEncode(data) {
+            const binary = pako.deflate(data);
+            return btoa(String.fromCharCode(...binary));
+        }
+        function decodeAndDecompress(encoded) {
+            // Décodage base64 → binaire (Uint8Array)
+            const binaryString = atob(encoded);
+            const binary = new Uint8Array([...binaryString].map(c => c.charCodeAt(0)));
+
+            // Décompression zlib
+            const data = pako.inflate(binary, { to: 'string' });
+
+            // Parse JSON
+            return data;
+        }
         async function getLastThreeProfiles() {
             try {
                 const snapshot = await db
@@ -555,6 +571,24 @@
                 .then(() => console.log('Profile saved successfully!'))
                 .catch((error) => console.error('Error saving profile:', error));
         }
+        async function getProfileById(id) {
+            try {
+                const docRef = db.collection("memetics_profiles").doc(id);
+                const doc = await docRef.get();
+
+                if (doc.exists) {
+                    console.log("Profil trouvé :", doc.data());
+                    return { id: doc.id, ...doc.data() };
+                } else {
+                    console.log("Aucun profil trouvé avec l'ID :", id);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Erreur lors de la récupération du profil :", error);
+                return null;
+            }
+        }
+
         function fitTextToWidth(ctx, text, maxWidth, initialFontSize = 13, minFontSize = 6, fontFamily = "Arial") {
             let fontSize = initialFontSize;
 
@@ -727,11 +761,6 @@
             });
         }
 
-        function compressAndEncode(obj) {
-            const json = JSON.stringify(obj);
-            const binary = pako.deflate(json);
-            return btoa(String.fromCharCode(...binary));
-        }
         function generateMemeticsTableImage(part1, part2, levelImageMap) {
             const tileSize = 96; // taille de l'image
             const padding = 3;
@@ -855,7 +884,7 @@
             document.body.appendChild(tempDiv);
 
             new QRCode(tempDiv, {
-                text: data,
+                text: compressAndEncode(data),
                 width: qrSize,
                 height: qrSize,
                 colorDark: '#000000',

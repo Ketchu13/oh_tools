@@ -30,22 +30,62 @@
 
     <title>Once Human - Memetics</title>
     <style>
+        :root {
+            --bg-color: #36393f;
+            --border-color: #72767d;
+            --highlight: #5865f2;
+            --input-bg: #202225;
+            --text-color: #dcddde;
+            --menu-txt-color: #5a7fa5;
+        }
+
         body {
             background-color: #36393f;
             color: #dcddde;
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-
             justify-content: center;
-            padding: 5px;
-            margin: 0;
-            min-height: 100vh;
+            padding: 20px;
+
         }
 
         #main_container {
+            margin: auto;
+            max-width: 800px;
+            margin-bottom: 50px;
+        }
+
+        #header {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        #menu_bar {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #72767d;
+            border-top: 1px solid #72767d;
+            padding-bottom: 8px;
+            padding-top: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #dcddde;
+        }
+
+        #menu_bar a {
+            color: #5a7fa5;
+            text-decoration: none;
+            padding-bottom: 4px;
+            border-bottom: 3px solid transparent;
+            border-top: 3px solid transparent;
+            transition: border-color 0.3s, color 0.3s;
+            cursor: pointer;
+        }
+
+        #menu_bar a:hover {
+            color: #5865f2;
+            border-bottom-color: #5865f2;
         }
 
         #input_container,
@@ -113,6 +153,14 @@
             margin-top: 0px;
         }
 
+        h2,
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
         h4 {
             margin-top: 20px;
             margin-bottom: 10px;
@@ -164,7 +212,7 @@
             background-color: #292b2f;
             margin-bottom: 10px;
             padding: 8px 12px;
-            height: 150px;
+            height: 64px;
             border-radius: 6px;
             position: relative;
             transition: background-color 0.2s ease;
@@ -184,8 +232,8 @@
         }
 
         .tile-image img {
-            width: 144px;
-            height: 144px;
+            width: 64px;
+            height: 64px;
             object-fit: contain;
             border-radius: 4px;
             user-select: none;
@@ -217,34 +265,7 @@
             user-select: none;
         }
 
-        #menu_bar {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #72767d;
-            border-top: 1px solid #72767d;
-            padding-bottom: 8px;
-            padding-top: 8px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: #dcddde;
-        }
 
-        #menu_bar a {
-            color: #5a7fa5;
-            text-decoration: none;
-            padding-bottom: 4px;
-            border-bottom: 3px solid transparent;
-            border-top: 3px solid transparent;
-            transition: border-color 0.3s, color 0.3s;
-            cursor: pointer;
-        }
-
-        #menu_bar a:hover {
-            color: #5865f2;
-            border-bottom-color: #5865f2;
-        }
 
         .ribbon {
             position: fixed;
@@ -335,8 +356,63 @@
         #update-box button:hover {
             background-color: #5b6eae;
         }
+
+        #last_profiles {
+            border: 1px solid #72767d;
+            background-color: #2f3136;
+            width: 300px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            box-shadow: 5px 3px 8px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            position: absolute;
+            padding-bottom: 4px;
+            text-align: center;
+            right: 20px;
+            top: 150px;
+        }
+
+        #last_profiles h2 {
+            margin-top: 0;
+            color: #fff;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 0;
+        }
+
+        #last_profiles p {
+            color: #b9bbbe;
+            font-size: 14px;
+            margin-bottom: 4px;
+            width: 100%;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        li {
+            list-style: none;
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #40444b;
+            border-radius: 3px;
+            color: #dcddde;
+            font-size: 14px;
+        }
+
+        ul {
+            padding: 0%;
+            margin: 0;
+        }
     </style>
     <script src="./js/jsQR.js"></script>
+    <!-- Firebase App (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <!-- Firebase Firestore (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 </head>
 
 <body>
@@ -376,6 +452,12 @@
             <div id="tilesList"></div>
         </div>
     </div>
+    <div id="last_profiles">
+        <h2>Last Memetics Profiles</h2>
+        <p>Last 3 profiles saved in the database:</p>
+        <ul id="last_profiles_list"></ul>
+        <div id="img_mm_pw"></div>
+    </div>
     <footer style="background-color: #1e1f22; color: #888; text-align: center; padding: 5px; font-size: 0.85rem;">
         <p>Personal project by <strong>ketchu13</strong> aka <strong>Søuris</strong> — <span
                 style="opacity: 0.8;">2025</span></p>
@@ -392,14 +474,87 @@
     </div>
     <script>
         let memeticsData = [];
+        let lastThreeProfiles = [];
 
+        const params = new URLSearchParams(window.location.search);
+        const profileID = params.get('profile_id');
+        const imgempty = new Image();
+
+        imgempty.src = './memetics_icons_cropped/empty.png';
+        imgempty.width = 96;
+        imgempty.height = 96;
+        imgempty.alt = 'empty';
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2_wLWe9dElA_jqlkxkfLldBzXeXa5l8U",
+            authDomain: "oncehumank13tools.firebaseapp.com",
+            projectId: "oncehumank13tools",
+            storageBucket: "oncehumank13tools.firebasestorage.app",
+            messagingSenderId: "766110090627",
+            appId: "1:766110090627:web:e8547f7018ff3777ff22b6",
+            measurementId: "G-YX55LK87YH"
+        };
+
+        // Initialisation
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
         // Charger le JSON complet
         fetch('memetics.json')
             .then(res => res.json())
             .then(data => memeticsData = data.memetics)
             .catch(err => alert("Erreur de chargement du JSON principal : " + err));
 
+        function compressAndEncode(data) {
+            const binary = pako.deflate(data);
+            return btoa(String.fromCharCode(...binary));
+        }
+        function decodeAndDecompress(encoded) {
+            // Décodage base64 → binaire (Uint8Array)
+            const binaryString = atob(encoded);
+            const binary = new Uint8Array([...binaryString].map(c => c.charCodeAt(0)));
+            // Décompression zlib
+            const data = pako.inflate(binary, { to: 'string' });
+            return data;
+        }
 
+        
+        async function getLastThreeProfiles() {
+            try {
+                const snapshot = await db
+                    .collection("memetics_profiles")
+                    .orderBy("createdAt")
+                    .limit(3)
+                    .get();
+
+                const profiles = [];
+                snapshot.forEach(doc => {
+                    profiles.push({ id: doc.id, ...doc.data() });
+                });
+
+                console.log("Derniers profils :", profiles);
+                return profiles;
+            } catch (error) {
+                console.error("Erreur lors de la récupération des profils :", error);
+                return [];
+            }
+        }
+        async function getProfileById(id) {
+            try {
+                const docRef = db.collection("memetics_profiles").doc(id);
+                const doc = await docRef.get();
+
+                if (doc.exists) {
+                    console.log("Profil trouvé :", doc.data());
+                    return { id: doc.id, ...doc.data() };
+                } else {
+                    console.log("Aucun profil trouvé avec l'ID :", id);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Erreur lors de la récupération du profil :", error);
+                return null;
+            }
+        }
         async function getLatestCommitSHA(owner, repo, branch = 'main') {
             const url = `https://api.github.com/repos/${owner}/${repo}/commits/${branch}`;
             try {
@@ -533,14 +688,15 @@
                 alert("Please select a file.");
                 return;
             }
+            const file = input.files[0];
+            if (!file) return;
+
             // Clear previous canvas
             const canvas = document.getElementById('qrCanvas');
             canvas.style.display = 'none';
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             // Read the uploaded file
-            const file = input.files[0];
-            if (!file) return;
 
             const reader = new FileReader();
             reader.onload = function () {
@@ -561,8 +717,9 @@
                     canvas.style.display = 'inline';
                     if (code) {
                         try {
+                            decoded_data = decodeAndDecompress(code.data);
                             // data format: player#server#level#s5,s10,s15...#
-                            parsed_data = code.data.split('#');
+                            parsed_data = decoded_data.split('#');
                             parsed_memetics = parsed_data[3].split(',');
                             parsed_memeticsData = {};
                             slevel = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
@@ -606,6 +763,70 @@
         // Lancer la vérification
         startCheckingUpdates('ketchu13', 'oh_tools', 'main', 60 * 1000); // check toutes les 10 secondes
 
+        getLastThreeProfiles().then(profiles => {
+
+            lastThreeProfiles = profiles;
+            // Afficher les 3 derniers profils
+            const list = document.getElementById('last_profiles_list');
+            if (profiles.length === 0) {
+                list.innerHTML = '<li>No profiles found.</li>';
+                return;
+            }
+            profiles.forEach(profile => {
+                const li = document.createElement('li');
+                // remplace tous les caractères sauf le premier et les 3 derniers par des * (bien sur si le pseudo fait 4 caracteres etc on gare moins
+                let player_name = ""
+                for (let i = 1; i < profile.player.length; i++) {
+                    if (i > 1 && i < profile.player.length - 2) {
+                        player_name += '*';
+                    } else {
+                        player_name += profile.player[i];
+                    }
+                }
+                li.textContent = `${player_name} (${profile.server})`;
+                // Ajouter un attribut data-id pour identifier le profil
+                li.dataset.id = profile.id;
+                tooltip = document.getElementById('img_mm_pw');
+                // Ajouter un gestionnaire d'événement pour le survol
+                li.addEventListener('mouseenter', () => {
+                    generatPicture(profile.memetics, player_name, profile.server, tooltip);
+                    tooltip.style.display = 'block';
+                });
+
+                li.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                    tooltip.innerHTML = '';
+                });
+                li.onclick = (e) => {
+                    e.stopPropagation();
+                    // todo
+                }
+                list.appendChild(li);
+            });
+        });
+        
+        if (profileID) {
+            getProfileById(profileID).then(profile => {
+                if (profile) {
+                    parsed_memetics = {};
+                    const levels = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+
+                    levels.forEach((level, index) => {
+                        parsed_memetics[`s${level}`] = String(profile.memetics[index]);
+                    });
+                    const userData = {
+                        player: profile.player,
+                        server: profile.server,
+                        level: profile.level,
+                        memetics: parsed_memetics,
+                    };
+
+                    generateTiles(userData);
+                } else {
+                    alert("Profile not found.");
+                }
+            });
+        }
     </script>
 </body>
 

@@ -492,9 +492,15 @@
         </div>
     </div>
     <script>
+
         let memeticsData = [];
         let lastThreeProfiles = [];
+
+        const params = new URLSearchParams(window.location.search);
+        const profileID = params.get('profile_id');
+
         const imgempty = new Image();
+
         imgempty.src = './memetics_icons_cropped/empty.png';
         imgempty.width = 96;
         imgempty.height = 96;
@@ -513,14 +519,6 @@
         // Initialisation
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
-        fetch('memetics.json')
-            .then((res) => res.json())
-            .then((data) => {
-                memeticsData = data.memetics;
-                populateSelects();
-            })
-            .catch(err => alert("Erreur de chargement du JSON principal : " + err));
 
         function compressAndEncode(data) {
             const binary = pako.deflate(data);
@@ -588,23 +586,6 @@
                 return null;
             }
         }
-
-        function fitTextToWidth(ctx, text, maxWidth, initialFontSize = 13, minFontSize = 6, fontFamily = "Arial") {
-            let fontSize = initialFontSize;
-
-            // On descend jusqu'à ce que ça rentre ou qu'on atteigne la taille minimale
-            while (fontSize >= minFontSize) {
-                ctx.font = `${fontSize}px ${fontFamily}`;
-                const metrics = ctx.measureText(text);
-                if (metrics.width <= maxWidth) {
-                    return fontSize;
-                }
-                fontSize -= 1;
-            }
-
-            // Si aucun ne passe, retourne la taille minimale
-            return minFontSize;
-        }
         async function getLatestCommitSHA(owner, repo, branch = 'main') {
             const url = `https://api.github.com/repos/${owner}/${repo}/commits/${branch}`;
             try {
@@ -622,6 +603,68 @@
                 return null;
             }
         }
+        function loadLastThreeProfiles() {
+            getLastThreeProfiles().then(profiles => {
+                lastThreeProfiles = profiles;
+                const list = document.getElementById('last_profiles_list');
+                list.innerHTML = ''; // On vide la liste avant de la remplir à nouveau
+
+                if (profiles.length === 0) {
+                    list.innerHTML = '<li>No profiles found.</li>';
+                    return;
+                }
+
+                profiles.forEach(profile => {
+                    const li = document.createElement('li');
+                    let player_name = "";
+                    for (let i = 0; i < profile.player.length; i++) {
+                        if (i >= 1 && i < profile.player.length - 1) {
+                            player_name += '*';
+                        } else {
+                            player_name += profile.player[i];
+                        }
+                    }
+
+                    li.textContent = `${player_name} (${profile.server})`;
+                    li.dataset.id = profile.id;
+                    const tooltip = document.getElementById('img_mm_pw');
+
+                    li.addEventListener('mouseenter', () => {
+                        generatPicture(profile.memetics, player_name, profile.server, tooltip);
+                        tooltip.style.display = 'block';
+                    });
+
+                    li.addEventListener('mouseleave', () => {
+                        tooltip.style.display = 'none';
+                        tooltip.innerHTML = '';
+                    });
+
+                    li.onclick = (e) => {
+                        e.stopPropagation();
+                        // TODO : Ajouter une action au clic
+                    };
+
+                    list.appendChild(li);
+                });
+            });
+        }
+        function fitTextToWidth(ctx, text, maxWidth, initialFontSize = 13, minFontSize = 6, fontFamily = "Arial") {
+            let fontSize = initialFontSize;
+
+            // On descend jusqu'à ce que ça rentre ou qu'on atteigne la taille minimale
+            while (fontSize >= minFontSize) {
+                ctx.font = `${fontSize}px ${fontFamily}`;
+                const metrics = ctx.measureText(text);
+                if (metrics.width <= maxWidth) {
+                    return fontSize;
+                }
+                fontSize -= 1;
+            }
+
+            // Si aucun ne passe, retourne la taille minimale
+            return minFontSize;
+        }
+
         function showUpdateOverlay() {
             document.getElementById('update-overlay').style.display = 'block';
         }
@@ -663,102 +706,6 @@
                 '"': '&quot;',
                 "'": '&#39;',
             })[m]);
-        }
-
-        function populateSelects() {
-            const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
-            const container = document.getElementById('memetic_slots');
-
-            slots.forEach((level) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'custom-dropdown-wrapper';
-
-                const label = document.createElement('label');
-                label.textContent = `Level ${level}`;
-                wrapper.appendChild(label);
-
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = `s${level}`;
-                hiddenInput.id = `s${level}`;
-                wrapper.appendChild(hiddenInput);
-
-                const dropdown = document.createElement('div');
-                dropdown.className = 'custom-dropdown';
-                dropdown.tabIndex = 0;
-
-                const selected = document.createElement('div');
-                selected.className = 'selected';
-                selected.textContent = 'Select a memetic for level ' + level + '...';
-                dropdown.appendChild(selected);
-
-                const options = document.createElement('div');
-                options.className = 'options';
-
-                const tooltip = document.getElementById('tooltip');
-                // sort alphabetically by name
-                memeticsData.sort((a, b) => a.name.localeCompare(b.name));
-                memeticsData.forEach((item) => {
-                    // on ajoute l'item que s'il est compatible avec le niveau su slot
-                    // item.levels est une liste de niveaux compatibles
-                    if (item.levels.includes(level)) {
-
-                        const option = document.createElement('div');
-                        option.className = 'option';
-                        option.dataset.value = item.id;
-
-                        const img = document.createElement('img');
-                        img.src = './memetics_icons_cropped/' + item.imgUrl;
-                        img.alt = item.name;
-                        img.width = 48;
-                        img.height = 48;
-
-                        const span = document.createElement('span');
-                        span.textContent = item.name;
-
-                        option.appendChild(img);
-                        option.appendChild(span);
-                        options.appendChild(option);
-                        option.addEventListener('mouseenter', e => {
-                            tooltip.innerHTML = `<strong>${item.effect_description}</strong><br>${item.effect_title}`;
-                            tooltip.style.display = 'block';
-                        });
-
-                        option.addEventListener('mousemove', e => {
-                            tooltip.style.left = (e.pageX + 15) + 'px';
-                            tooltip.style.top = (e.pageY + 15) + 'px';
-                        });
-
-                        option.addEventListener('mouseleave', () => {
-                            tooltip.style.display = 'none';
-                        });
-                        option.onclick = (e) => {
-                            e.stopPropagation();
-                            selected.textContent = '';
-                            const cloneImg = img.cloneNode(true);
-                            selected.appendChild(cloneImg);
-                            selected.appendChild(document.createTextNode(' ' + item.name));
-                            hiddenInput.value = item.id;
-                            options.classList.remove('show');
-                        };
-                    }
-                });
-
-
-                dropdown.appendChild(options);
-
-                dropdown.onclick = (e) => {
-                    e.stopPropagation();
-                    // Fermer les autres dropdowns ouvertes
-                    document.querySelectorAll('.custom-dropdown .options.show').forEach((el) => {
-                        if (el !== options) el.classList.remove('show');
-                    });
-                    options.classList.toggle('show');
-                };
-
-                wrapper.appendChild(dropdown);
-                container.appendChild(wrapper);
-            });
         }
 
         function generateMemeticsTableImage(part1, part2, levelImageMap) {
@@ -872,6 +819,102 @@
             const part2 = server || 'Server';
             const canvas_mm = generateMemeticsTableImage(part1, part2, levelImageMap);
             img_elem.appendChild(canvas_mm);
+        }
+
+        function populateSelects() {
+            const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+            const container = document.getElementById('memetic_slots');
+
+            slots.forEach((level) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'custom-dropdown-wrapper';
+
+                const label = document.createElement('label');
+                label.textContent = `Level ${level}`;
+                wrapper.appendChild(label);
+
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = `s${level}`;
+                hiddenInput.id = `s${level}`;
+                wrapper.appendChild(hiddenInput);
+
+                const dropdown = document.createElement('div');
+                dropdown.className = 'custom-dropdown';
+                dropdown.tabIndex = 0;
+
+                const selected = document.createElement('div');
+                selected.className = 'selected';
+                selected.textContent = 'Select a memetic for level ' + level + '...';
+                dropdown.appendChild(selected);
+
+                const options = document.createElement('div');
+                options.className = 'options';
+
+                const tooltip = document.getElementById('tooltip');
+                // sort alphabetically by name
+                memeticsData.sort((a, b) => a.name.localeCompare(b.name));
+                memeticsData.forEach((item) => {
+                    // on ajoute l'item que s'il est compatible avec le niveau su slot
+                    // item.levels est une liste de niveaux compatibles
+                    if (item.levels.includes(level)) {
+
+                        const option = document.createElement('div');
+                        option.className = 'option';
+                        option.dataset.value = item.id;
+
+                        const img = document.createElement('img');
+                        img.src = './memetics_icons_cropped/' + item.imgUrl;
+                        img.alt = item.name;
+                        img.width = 48;
+                        img.height = 48;
+
+                        const span = document.createElement('span');
+                        span.textContent = item.name;
+
+                        option.appendChild(img);
+                        option.appendChild(span);
+                        options.appendChild(option);
+                        option.addEventListener('mouseenter', e => {
+                            tooltip.innerHTML = `<strong>${item.effect_description}</strong><br>${item.effect_title}`;
+                            tooltip.style.display = 'block';
+                        });
+
+                        option.addEventListener('mousemove', e => {
+                            tooltip.style.left = (e.pageX + 15) + 'px';
+                            tooltip.style.top = (e.pageY + 15) + 'px';
+                        });
+
+                        option.addEventListener('mouseleave', () => {
+                            tooltip.style.display = 'none';
+                        });
+                        option.onclick = (e) => {
+                            e.stopPropagation();
+                            selected.textContent = '';
+                            const cloneImg = img.cloneNode(true);
+                            selected.appendChild(cloneImg);
+                            selected.appendChild(document.createTextNode(' ' + item.name));
+                            hiddenInput.value = item.id;
+                            options.classList.remove('show');
+                        };
+                    }
+                });
+
+
+                dropdown.appendChild(options);
+
+                dropdown.onclick = (e) => {
+                    e.stopPropagation();
+                    // Fermer les autres dropdowns ouvertes
+                    document.querySelectorAll('.custom-dropdown .options.show').forEach((el) => {
+                        if (el !== options) el.classList.remove('show');
+                    });
+                    options.classList.toggle('show');
+                };
+
+                wrapper.appendChild(dropdown);
+                container.appendChild(wrapper);
+            });
         }
         function generateQRCode(memetics_d_, data, player, server, level) {
 
@@ -1031,60 +1074,45 @@
             generateQRCode(memetics_d, data, player, server, level);
 
         }
-
-        // Ferme les dropdown si clic hors dropdown
-        document.addEventListener('click', () => {
-            document.querySelectorAll('.custom-dropdown .options.show').forEach((el) => {
-                el.classList.remove('show');
+        // fonction async qui charge le JSON et le stocke
+        async function loadJsonBeforePage() {
+            try {
+                const response = await fetch('./memetics.json');
+                if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+                const data = await response.json();
+                memeticsData = data.memetics;
+                populateSelects();
+            } catch (e) {
+                console.error('Erreur lors du chargement JSON:', e);
+                // Tu peux choisir un fallback ici
+                window.myGlobalDict = {};
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            loadJsonBeforePage()
+                .then(() => {
+                    console.log('Memetics data loaded successfully.');
+                })
+                .catch((error) => {
+                    console.error('Failed to load memetics data:', error);
+                });
+            // Lancer la vérification
+            startCheckingUpdates('ketchu13', 'oh_tools', 'main', 60 * 1000); // check toutes les 10 secondes
+            // Charger une première fois au démarrage
+            loadLastThreeProfiles();
+            setInterval(() => {
+                loadLastThreeProfiles();
+            }, 30 * 1000); // Recharger toutes les 30 secondes pour le devbug
+            //Ferme les dropdown si clic hors dropdown
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-dropdown .options.show').forEach((el) => {
+                    el.classList.remove('show');
+                });
             });
-        });
 
+        });
         document.getElementById('reload-btn').addEventListener('click', reloadPage);
 
-        // Lancer la vérification
-        startCheckingUpdates('ketchu13', 'oh_tools', 'main', 60 * 1000); // check toutes les 10 secondes
-
-        getLastThreeProfiles().then(profiles => {
-
-            lastThreeProfiles = profiles;
-            // Afficher les 3 derniers profils
-            const list = document.getElementById('last_profiles_list');
-            if (profiles.length === 0) {
-                list.innerHTML = '<li>No profiles found.</li>';
-                return;
-            }
-            profiles.forEach(profile => {
-                const li = document.createElement('li');
-                // remplace tous les caractères sauf le premier et les 3 derniers par des * (bien sur si le pseudo fait 4 caracteres etc on gare moins
-                let player_name = ""
-                for (let i = 1; i < profile.player.length; i++) {
-                    if (i > 1 && i < profile.player.length - 2) {
-                        player_name += '*';
-                    } else {
-                        player_name += profile.player[i];
-                    }
-                }
-                li.textContent = `${player_name} (${profile.server})`;
-                // Ajouter un attribut data-id pour identifier le profil
-                li.dataset.id = profile.id;
-                tooltip = document.getElementById('img_mm_pw');
-                // Ajouter un gestionnaire d'événement pour le survol
-                li.addEventListener('mouseenter', () => {
-                    generatPicture(profile.memetics, player_name, profile.server, tooltip);
-                    tooltip.style.display = 'block';
-                });
-
-                li.addEventListener('mouseleave', () => {
-                    tooltip.style.display = 'none';
-                    tooltip.innerHTML = '';
-                });
-                li.onclick = (e) => {
-                    e.stopPropagation();
-                    // todo
-                }
-                list.appendChild(li);
-            });
-        });
 
     </script>
 </body>

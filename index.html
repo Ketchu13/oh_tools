@@ -411,7 +411,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <!-- Firebase Firestore (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 </head>
 
@@ -473,11 +473,13 @@
         </div>
     </div>
     <script>
+
         let memeticsData = [];
         let lastThreeProfiles = [];
 
         const params = new URLSearchParams(window.location.search);
         const profileID = params.get('profile_id');
+
         const imgempty = new Image();
 
         imgempty.src = './memetics_icons_cropped/empty.png';
@@ -498,11 +500,6 @@
         // Initialisation
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        // Charger le JSON complet
-        fetch('memetics.json')
-            .then(res => res.json())
-            .then(data => memeticsData = data.memetics)
-            .catch(err => alert("Erreur de chargement du JSON principal : " + err));
 
         function compressAndEncode(data) {
             const binary = pako.deflate(data);
@@ -512,12 +509,13 @@
             // Décodage base64 → binaire (Uint8Array)
             const binaryString = atob(encoded);
             const binary = new Uint8Array([...binaryString].map(c => c.charCodeAt(0)));
+
             // Décompression zlib
             const data = pako.inflate(binary, { to: 'string' });
+
+            // Parse JSON
             return data;
         }
-
-        
         async function getLastThreeProfiles() {
             try {
                 const snapshot = await db
@@ -537,6 +535,20 @@
                 console.error("Erreur lors de la récupération des profils :", error);
                 return [];
             }
+        }
+
+        function saveProfileToFirestore(player, server, level, memetics) {
+            const profileData = {
+                player: player,
+                server: server,
+                level: level,
+                memetics: memetics,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            return db.collection('memetics_profiles').add(profileData)
+                .then(() => console.log('Profile saved successfully!'))
+                .catch((error) => console.error('Error saving profile:', error));
         }
         async function getProfileById(id) {
             try {
@@ -572,6 +584,68 @@
                 return null;
             }
         }
+        function loadLastThreeProfiles() {
+            getLastThreeProfiles().then(profiles => {
+                lastThreeProfiles = profiles;
+                const list = document.getElementById('last_profiles_list');
+                list.innerHTML = ''; // On vide la liste avant de la remplir à nouveau
+
+                if (profiles.length === 0) {
+                    list.innerHTML = '<li>No profiles found.</li>';
+                    return;
+                }
+
+                profiles.forEach(profile => {
+                    const li = document.createElement('li');
+                    let player_name = "";
+                    for (let i = 0; i < profile.player.length; i++) {
+                        if (i >= 1 && i < profile.player.length - 1) {
+                            player_name += '*';
+                        } else {
+                            player_name += profile.player[i];
+                        }
+                    }
+
+                    li.textContent = `${player_name} (${profile.server})`;
+                    li.dataset.id = profile.id;
+                    const tooltip = document.getElementById('img_mm_pw');
+
+                    li.addEventListener('mouseenter', () => {
+                        generatPicture(profile.memetics, player_name, profile.server, tooltip);
+                        tooltip.style.display = 'block';
+                    });
+
+                    li.addEventListener('mouseleave', () => {
+                        tooltip.style.display = 'none';
+                        tooltip.innerHTML = '';
+                    });
+
+                    li.onclick = (e) => {
+                        e.stopPropagation();
+                        // TODO : Ajouter une action au clic
+                    };
+
+                    list.appendChild(li);
+                });
+            });
+        }
+        function fitTextToWidth(ctx, text, maxWidth, initialFontSize = 13, minFontSize = 6, fontFamily = "Arial") {
+            let fontSize = initialFontSize;
+
+            // On descend jusqu'à ce que ça rentre ou qu'on atteigne la taille minimale
+            while (fontSize >= minFontSize) {
+                ctx.font = `${fontSize}px ${fontFamily}`;
+                const metrics = ctx.measureText(text);
+                if (metrics.width <= maxWidth) {
+                    return fontSize;
+                }
+                fontSize -= 1;
+            }
+
+            // Si aucun ne passe, retourne la taille minimale
+            return minFontSize;
+        }
+
         function showUpdateOverlay() {
             document.getElementById('update-overlay').style.display = 'block';
         }
@@ -613,6 +687,119 @@
                 '"': '&quot;',
                 "'": '&#39;',
             })[m]);
+        }
+
+        function generateMemeticsTableImage(part1, part2, levelImageMap) {
+            const tileSize = 96; // taille de l'image
+            const padding = 3;
+            const fontSize = 13;
+            const headerHeight = 50;
+            const rowHeight = tileSize + padding;
+            const rows = 5;
+            const cols = 4;
+            const canvasWidth = 13 + 30 + tileSize + 13 + 30 + tileSize + 13;
+            const canvasHeight = headerHeight + rows * rowHeight + 13;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            canvas.style.borderRadius = '5px';
+            const ctx = canvas.getContext('2d');
+            //reduce size of part1 and part2 to 50
+            part1 = part1.length > 20 ? part1.substring(0, 20) + '...' : part1;
+            part2 = part2.length > 30 ? part2.substring(0, 30) + '...' : part2;
+            if (part1.length + part2.length > 50) {
+                part1 = part1.substring(0, 20) + '...';
+                part2 = part2.substring(0, 30) + '...';
+            }
+            // Fond
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Header
+            ctx.fillStyle = 'white';
+            const fontSized = fitTextToWidth(ctx, `${part1} - ${part2}`, 545);
+            ctx.font = `bold ${fontSized}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText(`${part1} - ${part2}`, canvasWidth / 2, 30);
+
+            // Colonnes gauche (5 → 25) et droite (30 → 50)
+            const leftLevels = [5, 10, 15, 20, 25];
+            const rightLevels = [30, 35, 40, 45, 50];
+
+            ctx.font = `${fontSize}px sans-serif`;
+            ctx.textAlign = 'left';
+
+            for (let i = 0; i < rows; i++) {
+                const y = headerHeight + i * rowHeight + fontSize / 2 + rowHeight / 2;
+
+                // Colonne 1 : niveau gauche
+                ctx.fillStyle = 'white';
+                ctx.fillText(`${leftLevels[i]}`, 13, y);
+
+                // Colonne 2 : image gauche
+                const imgLeft = levelImageMap[leftLevels[i]];
+                if (imgLeft) {
+                    ctx.drawImage(
+                        imgLeft,
+                        13 + 30,
+                        headerHeight + i * rowHeight,
+                        tileSize,
+                        tileSize
+                    );
+                }
+
+                // Colonne 3 : niveau droite
+                ctx.fillText(`${rightLevels[i]}`, 13 + 30 + tileSize + 13, y);
+
+                // Colonne 4 : image droite
+                const imgRight = levelImageMap[rightLevels[i]];
+                if (imgRight) {
+                    ctx.drawImage(
+                        imgRight,
+                        13 + 30 + tileSize + 13 + 30,
+                        headerHeight + i * rowHeight,
+                        tileSize,
+                        tileSize
+                    );
+                }
+            }
+
+            return canvas;
+        }
+        function generatPicture(profile_memetics, player_name, server, img_elem) {
+            img_elem.style.display = 'block';
+            img_elem.innerHTML = '';
+            const levelImageMap = {};
+            const imgempty = new Image();
+            imgempty.src = './memetics_icons_cropped/empty.png';
+            imgempty.width = 96;
+            imgempty.height = 96;
+            imgempty.alt = 'empty';
+            for (let i = 5; i <= 50; i += 5) {
+                levelImageMap[i] = imgempty; // initialise avec une image vide
+            }
+            profile_memetics.forEach((memeticId, index) => {
+                if (memeticId) {
+                    const memetic = memeticsData.find(m => m.id === parseInt(memeticId));
+                    if (!memetic) {
+                        console.warn(`Memetic with ID ${memeticId} not found.`);
+                        return;
+                    }
+                    if (memetic) {
+                        const img = new Image();
+                        img.src = './memetics_icons_cropped/' + memetic.imgUrl;
+                        img.width = 96;
+                        img.height = 96;
+                        img.alt = memetic.name;
+                        levelImageMap[(index + 1) * 5] = img; // map niveau à l'image
+                    }
+                }
+            });
+            const part1 = player_name || 'Profile';
+            const part2 = server || 'Server';
+            const canvas_mm = generateMemeticsTableImage(part1, part2, levelImageMap);
+            img_elem.appendChild(canvas_mm);
         }
 
         function generateTiles(userData) {
@@ -746,7 +933,7 @@
             reader.readAsDataURL(file);
         }
 
-        document.getElementById('reload-btn').addEventListener('click', reloadPage);
+
         const fileInput = document.getElementById('fileInput');
 
         fileInput.addEventListener('click', () => {
@@ -760,51 +947,45 @@
                 handleQRCodeUpload(fileInput);
             }
         });
-        // Lancer la vérification
-        startCheckingUpdates('ketchu13', 'oh_tools', 'main', 60 * 1000); // check toutes les 10 secondes
-
-        getLastThreeProfiles().then(profiles => {
-
-            lastThreeProfiles = profiles;
-            // Afficher les 3 derniers profils
-            const list = document.getElementById('last_profiles_list');
-            if (profiles.length === 0) {
-                list.innerHTML = '<li>No profiles found.</li>';
-                return;
+        // fonction async qui charge le JSON et le stocke
+        async function loadJsonBeforePage() {
+            try {
+                const response = await fetch('./memetics.json');
+                if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+                const data = await response.json();
+                memeticsData = data.memetics;
+                populateSelects();
+            } catch (e) {
+                console.error('Erreur lors du chargement JSON:', e);
+                // Tu peux choisir un fallback ici
+                window.myGlobalDict = {};
             }
-            profiles.forEach(profile => {
-                const li = document.createElement('li');
-                // remplace tous les caractères sauf le premier et les 3 derniers par des * (bien sur si le pseudo fait 4 caracteres etc on gare moins
-                let player_name = ""
-                for (let i = 1; i < profile.player.length; i++) {
-                    if (i > 1 && i < profile.player.length - 2) {
-                        player_name += '*';
-                    } else {
-                        player_name += profile.player[i];
-                    }
-                }
-                li.textContent = `${player_name} (${profile.server})`;
-                // Ajouter un attribut data-id pour identifier le profil
-                li.dataset.id = profile.id;
-                tooltip = document.getElementById('img_mm_pw');
-                // Ajouter un gestionnaire d'événement pour le survol
-                li.addEventListener('mouseenter', () => {
-                    generatPicture(profile.memetics, player_name, profile.server, tooltip);
-                    tooltip.style.display = 'block';
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            loadJsonBeforePage()
+                .then(() => {
+                    console.log('Memetics data loaded successfully.');
+                })
+                .catch((error) => {
+                    console.error('Failed to load memetics data:', error);
                 });
-
-                li.addEventListener('mouseleave', () => {
-                    tooltip.style.display = 'none';
-                    tooltip.innerHTML = '';
+            // Lancer la vérification
+            startCheckingUpdates('ketchu13', 'oh_tools', 'main', 60 * 1000); // check toutes les 10 secondes
+            // Charger une première fois au démarrage
+            loadLastThreeProfiles();
+            setInterval(() => {
+                loadLastThreeProfiles();
+            }, 30 * 1000); // Recharger toutes les 30 secondes pour le devbug
+            //Ferme les dropdown si clic hors dropdown
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-dropdown .options.show').forEach((el) => {
+                    el.classList.remove('show');
                 });
-                li.onclick = (e) => {
-                    e.stopPropagation();
-                    // todo
-                }
-                list.appendChild(li);
             });
+
         });
-        
+        document.getElementById('reload-btn').addEventListener('click', reloadPage);
+
         if (profileID) {
             getProfileById(profileID).then(profile => {
                 if (profile) {

@@ -178,7 +178,8 @@
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
-            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
         }
 
         h2,
@@ -197,6 +198,10 @@
             margin-top: 20px;
             margin-bottom: 10px;
             color: #b9bbbe;
+        }
+        h4.top {
+            margin-top: 10px;
+            margin-bottom: 20px;
         }
 
         #qrcode,
@@ -429,6 +434,17 @@
             padding: 0%;
             margin: 0;
         }
+        #server-container {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            justify-content: flex-start;
+        }
+        #server-type-container,
+        #server-name-input-container {
+
+        }
+
     </style>
     <script src="./js/qrcode.min.js"></script>
     <!-- Firebase App (compat) -->
@@ -452,11 +468,30 @@
             <a href="#input_container">Memetics Profile Generator</a>
         </nav>
         <div id="input_container">
-            <h4>Memetics Profile Generator</h4>
+            <h4 class="top">Memetics Profile Generator</h4>
+            <p>Generate and share your Once Human Memetics Mastery profile.</p>
             <label for="player">User Name</label>
             <input type="text" id="player" name="player" placeholder="Rosetta42" />
-            <label for="server">Serveur</label>
-            <input type="text" id="server" name="server" placeholder="Manibus-X179" value="Manibus-X179" />
+
+            <div id="server-container">
+                <div id="server-type-container">
+                    <label for="server_type">Scenario</label>
+                    <select id="server_type" name="server">
+                        <option value="mb">Manibus</option>
+                        <option value="wow">Way Of Winter</option>
+                        <option value="ed">Endless Dream</option>
+                        <option value="ec">Evolution's Call</option>
+                        <option value="pmc">Prismverse's Clash</option>
+                        <option value="all">All..</option>
+                        <option value="rz" disabled>RaidZone</option>
+                    </select>
+                </div>
+                <div id="server-name-input-container">
+                    <label for="server_name">Server Name</label>
+                    <input type="text" id="server_name" name="server_name" placeholder="X179" />
+                </div>
+            </div>
+
             <label for="level">Level</label>
             <input type="number" id="level" name="level" value="50" />
             <h4>Choose Memetics Slots</h4>
@@ -852,10 +887,47 @@
             const canvas_mm = generateMemeticsTableImage(part1, part2, levelImageMap);
             img_elem.appendChild(canvas_mm);
         }
+        function updateOtherDropdowns(changedLevel, oldValue, newValue) {
+            // Met à jour tous les dropdowns sauf celui qui vient d’être modifié
+            const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+            const selectedValues = {};
+
+            // Collecter tous les memetics sélectionnés (par level)
+            slots.forEach((lvl) => {
+                const val = document.getElementById(`s${lvl}`).value;
+                if (val) {
+                    selectedValues[lvl] = val;
+                }
+            });
+
+            // Mettre à jour chaque dropdown sauf celui modifié
+            slots.forEach((lvl) => {
+                if (lvl === changedLevel) return;
+
+                const input = document.getElementById(`s${lvl}`);
+                const selectedValue = input.value;
+                const optionsContainer = input.closest('.custom-dropdown-wrapper')
+                                              .querySelector('.options');
+
+                // Réafficher toutes les options, puis masquer celles qui sont sélectionnées ailleurs
+                optionsContainer.querySelectorAll('.option').forEach(opt => {
+                    const memId = opt.dataset.value;
+
+                    // Si ce memetic est utilisé dans un autre slot, on le cache
+                    if (Object.values(selectedValues).includes(memId) && memId !== selectedValue) {
+                        opt.style.display = 'none';
+                    } else {
+                        opt.style.display = '';
+                    }
+                });
+            });
+        }
 
         function populateSelects() {
             const slots = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
             const container = document.getElementById('memetic_slots');
+            // clear container
+            container.innerHTML = '';
 
             slots.forEach((level) => {
                 const wrapper = document.createElement('div');
@@ -884,13 +956,23 @@
                 options.className = 'options';
 
                 const tooltip = document.getElementById('tooltip');
+
+                // get server name from input elem
+                server_type = document.getElementById('server_type').value;
+                server_name = document.getElementById('server_name').value;
+
                 // sort alphabetically by name
                 memeticsData.sort((a, b) => a.name.localeCompare(b.name));
                 memeticsData.forEach((item) => {
                     // on ajoute l'item que s'il est compatible avec le niveau su slot
                     // item.levels est une liste de niveaux compatibles
                     if (item.levels.includes(level)) {
-
+                        // add filter to server
+                        if (item.scenarios && item.scenarios !== 'all') {
+                            if (!item.scenarios.includes(server_type)) {
+                                return; // skip this item if it doesn't match the server type
+                            }
+                        }
                         const option = document.createElement('div');
                         option.className = 'option';
                         option.dataset.value = item.id;
@@ -922,12 +1004,24 @@
                         });
                         option.onclick = (e) => {
                             e.stopPropagation();
+
+                            // Sauvegarder l'ancien memetic sélectionné pour ce slot
+                            const previousValue = hiddenInput.value;
+
+                            // Mettre à jour le visuel du slot sélectionné
                             selected.textContent = '';
                             const cloneImg = img.cloneNode(true);
                             selected.appendChild(cloneImg);
                             selected.appendChild(document.createTextNode(' ' + item.name));
+
+                            // Mettre à jour la valeur cachée
                             hiddenInput.value = item.id;
+
+                            // Fermer le dropdown
                             options.classList.remove('show');
+
+                            // ⚠️ Mettre à jour tous les autres dropdowns
+                            updateOtherDropdowns(level, previousValue, item.id);
                         };
                     }
                 });
@@ -1078,7 +1172,14 @@
         function generateProfile() {
             // Récupère les valeurs des champs
             const player = document.getElementById('player').value.trim();
-            const server = document.getElementById('server').value.trim();
+            const server_option = document.getElementById('server_type');
+            const server_scn = server_option.options[server_option.selectedIndex].text;
+            let server_name = document.getElementById('server_name').value.trim()
+            if (server_name.length === 0) {
+                // si non rempli, on met le nom par defaut
+                server_name = document.getElementById('server_name').placeholder;
+            }
+            const server = server_scn + ' - ' + server_name;
             const level = parseInt(document.getElementById('level').value) || 0;
 
             if (!player || !server || !level) {
@@ -1115,7 +1216,7 @@
         // fonction async qui charge le JSON et le stocke
         async function loadJsonBeforePage() {
             try {
-                const response = await fetch('./memetics.json');
+                const response = await fetch('./memetics_reformatted.json');
                 if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
                 const data = await response.json();
                 memeticsData = data.memetics;
@@ -1150,7 +1251,10 @@
 
         });
         document.getElementById('reload-btn').addEventListener('click', reloadPage);
-
+        document.getElementById('server_type').addEventListener('change', () => {
+            // Recharger les options des slots en fonction du type de serveur
+            populateSelects();
+        });
 
     </script>
 </body>

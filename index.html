@@ -520,7 +520,7 @@
             try {
                 const snapshot = await db
                     .collection("memetics_profiles")
-                    .orderBy("createdAt")
+                    .orderBy("createdAt", "desc")
                     .limit(3)
                     .get();
 
@@ -547,8 +547,15 @@
             };
 
             return db.collection('memetics_profiles').add(profileData)
-                .then(() => console.log('Profile saved successfully!'))
-                .catch((error) => console.error('Error saving profile:', error));
+                .then((docRef) => {
+                    console.log('Profile saved successfully!');
+                    console.log('Document ID:', docRef.id);
+                    return docRef.id; // ✅ renvoie l'ID du document
+                })
+                .catch((error) => {
+                    console.error('Error saving profile:', error);
+                    throw error; // ✅ permet au code appelant de gérer l'erreur
+                });
         }
         async function getProfileById(id) {
             try {
@@ -622,7 +629,11 @@
 
                     li.onclick = (e) => {
                         e.stopPropagation();
-                        // TODO : Ajouter une action au clic
+                        webkitURL = window.webkitURL || window.URL;
+                        const profileId = li.dataset.id;
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('profile_id', profileId);
+                        window.location.href = url.toString();
                     };
 
                     list.appendChild(li);
@@ -924,23 +935,28 @@
                     canvas.style.display = 'inline';
                     if (code) {
                         try {
-                            decoded_data = decodeAndDecompress(code.data);
-                            // data format: player#server#level#s5,s10,s15...#
-                            parsed_data = decoded_data.split('#');
-                            parsed_memetics = parsed_data[3].split(',');
-                            parsed_memeticsData = {};
-                            slevel = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
-                            for (let i = 0; i < parsed_memetics.length; i++) {
-                                parsed_memeticsData['s' + slevel[i]] = parsed_memetics[i];
-                            }
-                            const userData = {
-                                player: parsed_data[0],
-                                server: parsed_data[1],
-                                level: parsed_data[2],
-                                memetics: parsed_memeticsData,
-                            };
-                            //document.getElementById('userJson').value = JSON.stringify(json, null, 2);
-                            generateTiles(userData);
+                            profile_id = code.data.split('?')[1].replace('profile_id=', '');
+                            // get profile from firebase
+                            getProfileById(profile_id).then(profile => {
+                                if (profile) {
+                                    parsed_memetics = {};
+                                    const levels = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+
+                                    levels.forEach((level, index) => {
+                                        parsed_memetics[`s${level}`] = String(profile.memetics[index]);
+                                    });
+                                    const userData = {
+                                        player: profile.player,
+                                        server: profile.server,
+                                        level: profile.level,
+                                        memetics: parsed_memetics,
+                                    };
+
+                                    generateTiles(userData);
+                                } else {
+                                    alert("Profile not found.");
+                                }
+                            });
                         } catch (err) {
                             alert("QR code content is not valid JSON.");
                         }
@@ -974,7 +990,7 @@
                 if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
                 const data = await response.json();
                 memeticsData = data.memetics;
-                populateSelects();
+                //populateSelects();
             } catch (e) {
                 console.error('Erreur lors du chargement JSON:', e);
                 // Tu peux choisir un fallback ici

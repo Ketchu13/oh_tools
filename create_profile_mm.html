@@ -539,7 +539,7 @@
             try {
                 const snapshot = await db
                     .collection("memetics_profiles")
-                    .orderBy("createdAt")
+                    .orderBy("createdAt", "desc")
                     .limit(3)
                     .get();
 
@@ -566,8 +566,15 @@
             };
 
             return db.collection('memetics_profiles').add(profileData)
-                .then(() => console.log('Profile saved successfully!'))
-                .catch((error) => console.error('Error saving profile:', error));
+                .then((docRef) => {
+                    console.log('Profile saved successfully!');
+                    console.log('Document ID:', docRef.id);
+                    return docRef.id; // ✅ renvoie l'ID du document
+                })
+                .catch((error) => {
+                    console.error('Error saving profile:', error);
+                    throw error; // ✅ permet au code appelant de gérer l'erreur
+                });
         }
         async function getProfileById(id) {
             try {
@@ -641,13 +648,18 @@
 
                     li.onclick = (e) => {
                         e.stopPropagation();
-                        // TODO : Ajouter une action au clic
+                        webkitURL = window.webkitURL || window.URL;
+                        const profileId = li.dataset.id;
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('profile_id', profileId);
+                        window.location.href = url.toString();
                     };
 
                     list.appendChild(li);
                 });
             });
         }
+
         function fitTextToWidth(ctx, text, maxWidth, initialFontSize = 13, minFontSize = 6, fontFamily = "Arial") {
             let fontSize = initialFontSize;
 
@@ -936,7 +948,7 @@
                 container.appendChild(wrapper);
             });
         }
-        function generateQRCode(memetics_d_, data, player, server, level) {
+        function generateQRCode(memetics_d_, profile_id, player, server, level) {
 
             const qrSize = 526;
             const borderSize = 40;
@@ -945,9 +957,10 @@
             tempDiv.style.position = 'absolute';
             tempDiv.style.left = '-9999px';
             document.body.appendChild(tempDiv);
-
+            // version url
+            new_data_url = `https://www.oh-tools.com/?profile_id=${profile_id}`;
             new QRCode(tempDiv, {
-                text: compressAndEncode(data),
+                text: new_data_url,
                 width: qrSize,
                 height: qrSize,
                 colorDark: '#000000',
@@ -1090,9 +1103,14 @@
             // debug
             //const outputPre = document.getElementById('output');
             //outputPre.textContent = data
-            saveProfileToFirestore(player, server, level, memetics_d);
-            generateQRCode(memetics_d, data, player, server, level);
-
+            saveProfileToFirestore(player, server, level, memetics_d)
+                .then((docId) => {
+                    console.log('Enregistré avec ID :', docId);
+                    generateQRCode(memetics_d, docId, player, server, level);
+                })
+                .catch((err) => {
+                    alert('Erreur lors de la sauvegarde du profil.');
+                });
         }
         // fonction async qui charge le JSON et le stocke
         async function loadJsonBeforePage() {
